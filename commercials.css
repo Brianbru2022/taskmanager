@@ -1,0 +1,5 @@
+/* Future CSS for the Commercial section will go here. */
+
+#commercialView h2 {
+    color: var(--color-text-primary);
+}
