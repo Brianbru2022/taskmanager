@@ -191,11 +191,12 @@ const assigneeStackHTML = allAssignees.map(p => `<div class="card-assignee-icon"
         const quickCloseBtnHTML = task.status !== 'Closed' ? `<button class="task-card-quick-close" data-task-id="${task.id}" title="Mark as Closed"><i class="fas fa-check-circle"></i></button>` : '';
         
         let displayProgress = 0;
-if (typeof task.progress === 'number') {
+if (task.status === 'Closed') {
+            displayProgress = 100;
+        } else if (typeof task.progress === 'number' && task.progress >= 0) {
             displayProgress = task.progress;
-} else {
-            if (task.status === 'In Progress') displayProgress = 50;
-else if (task.status === 'Closed') displayProgress = 100;
+        } else if (task.status === 'In Progress') {
+            displayProgress = 50;
         }
 
         const progressBarHTML = `
@@ -803,10 +804,13 @@ openModal(linkModal);
     const renderDashboard = () => {
         const activeTasks = tasks.filter(t => !t.isArchived);
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
         
-        const todayISO = today.toISOString().split('T')[0];
-
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayLocalISO = `${year}-${month}-${day}`;
+        
+        today.setHours(0, 0, 0, 0);
         const nextWeek = new Date(today);
         nextWeek.setDate(today.getDate() + 7);
 
@@ -814,7 +818,7 @@ openModal(linkModal);
         const inProgressCount = activeTasks.filter(t => t.status === 'In Progress').length;
         const closedCount = tasks.filter(t => t.status === 'Closed').length;
         const overdueCount = activeTasks.filter(t => new Date(t.dueDate) < today && t.status !== 'Closed').length;
-        const dueTodayCount = activeTasks.filter(t => t.dueDate === todayISO && t.status !== 'Closed').length;
+        const dueTodayCount = activeTasks.filter(t => t.dueDate === todayLocalISO && t.status !== 'Closed').length;
         const dueThisWeekCount = activeTasks.filter(t => {
             const dueDate = new Date(t.dueDate);
             return dueDate > today && dueDate <= nextWeek && t.status !== 'Closed';
