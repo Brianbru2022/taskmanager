@@ -85,22 +85,6 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
     };
     
     // --- CORE RENDERING ---
-    const getAllTasksAndSubtasks = () => {
-        const flatList = [];
-        function traverse(tasks, parentName = null, parentId = null) {
-            for (const task of tasks) {
-                // Create a clone to avoid modifying the original object
-                const taskClone = { ...task, parentTaskName: parentName, parentId: parentId };
-                flatList.push(taskClone);
-                if (task.subtasks && task.subtasks.length > 0) {
-                    traverse(task.subtasks, task.name, task.id); // Pass current task name and id as parent
-                }
-            }
-        }
-        traverse(tasks.filter(t => !t.isArchived));
-        return flatList;
-    };
-
     const renderKanbanBoard = () => {
         const searchTerm = globalSearchInput.value.toLowerCase();
         const activeTasks = tasks.filter(t => !t.isArchived);
@@ -160,34 +144,69 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const allTasksAndSubtasks = getAllTasksAndSubtasks();
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 7);
 
-        // Render "Today's Tasks" column
-        const todaysTasks = allTasksAndSubtasks.filter(t => {
-            const dueDate = new Date(t.dueDate);
-            dueDate.setHours(0, 0, 0, 0);
-            return dueDate.getTime() === today.getTime() && t.status !== 'Closed';
+        const todaysTaskIds = new Set();
+        const thisWeeksTaskIds = new Set();
+        const tasksWithDueSubtasksToday = new Set();
+        const tasksWithDueSubtasksThisWeek = new Set();
+
+        function checkSubtasks(task, parentTask) {
+            for (const subtask of task.subtasks || []) {
+                const subtaskDueDate = new Date(subtask.dueDate);
+                subtaskDueDate.setHours(0, 0, 0, 0);
+
+                if (subtask.status !== 'Closed') {
+                    if (subtaskDueDate.getTime() === today.getTime()) {
+                        todaysTaskIds.add(parentTask.id);
+                        tasksWithDueSubtasksToday.add(parentTask.id);
+                    } else if (subtaskDueDate > today && subtaskDueDate <= nextWeek) {
+                        thisWeeksTaskIds.add(parentTask.id);
+                        tasksWithDueSubtasksThisWeek.add(parentTask.id);
+                    }
+                }
+                if (subtask.subtasks && subtask.subtasks.length > 0) {
+                    checkSubtasks(subtask, parentTask);
+                }
+            }
+        }
+
+        activeTasks.forEach(task => {
+            const taskDueDate = new Date(task.dueDate);
+            taskDueDate.setHours(0, 0, 0, 0);
+
+            if (task.status !== 'Closed') {
+                if (taskDueDate.getTime() === today.getTime()) {
+                    todaysTaskIds.add(task.id);
+                } else if (taskDueDate > today && taskDueDate <= nextWeek) {
+                    thisWeeksTaskIds.add(task.id);
+                }
+            }
+            checkSubtasks(task, task);
         });
 
-        const column = document.createElement('div');
-        column.className = 'kanban-column todays-tasks';
-        column.innerHTML = `<div class="column-header"><span>Today's Tasks</span><span class="task-count" style="background-color: var(--color-accent-warning)">${todaysTasks.length}</span></div><div class="tasks-container"></div>`;
-        const tasksContainerToday = column.querySelector('.tasks-container');
+        // Render "Today's Tasks" column
+        const todaysTasks = Array.from(todaysTaskIds).map(id => findTaskById(id));
+        const todaysColumn = document.createElement('div');
+        todaysColumn.className = 'kanban-column todays-tasks';
+        todaysColumn.innerHTML = `<div class="column-header"><span>Today's Tasks</span><span class="task-count" style="background-color: var(--color-accent-warning)">${todaysTasks.length}</span></div><div class="tasks-container"></div>`;
+        const tasksContainerToday = todaysColumn.querySelector('.tasks-container');
         if (todaysTasks.length === 0) {
             tasksContainerToday.innerHTML = `<div class="empty-state"><i class="fas fa-coffee"></i> <p>No tasks due today. Enjoy the break!</p></div>`;
         } else {
-            todaysTasks.forEach(task => tasksContainerToday.appendChild(createTaskCard(task, false)));
+            todaysTasks.forEach(task => {
+                const hasDueSubtask = tasksWithDueSubtasksToday.has(task.id);
+                tasksContainerToday.appendChild(createTaskCard(task, false, hasDueSubtask));
+            });
         }
-        kanbanBoard.appendChild(column);
+        kanbanBoard.appendChild(todaysColumn);
+
 
         // Render "This Week's Tasks" column
-        const nextWeek = new Date();
-        nextWeek.setDate(today.getDate() + 7);
-        const thisWeeksTasks = allTasksAndSubtasks.filter(t => {
-            const dueDate = new Date(t.dueDate);
-            dueDate.setHours(0, 0, 0, 0);
-            return dueDate > today && dueDate <= nextWeek && t.status !== 'Closed';
-        });
+        const thisWeeksTasks = Array.from(thisWeeksTaskIds)
+            .filter(id => !todaysTaskIds.has(id)) // Exclude tasks already shown for today
+            .map(id => findTaskById(id));
         const weekColumn = document.createElement('div');
         weekColumn.className = 'kanban-column this-week-tasks';
         weekColumn.innerHTML = `<div class="column-header"><span>This Week's Tasks</span><span class="task-count" style="background-color: #1890ff">${thisWeeksTasks.length}</span></div><div class="tasks-container"></div>`;
@@ -195,12 +214,15 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         if (thisWeeksTasks.length === 0) {
             weekTasksContainer.innerHTML = `<div class="empty-state"><i class="fas fa-calendar-check"></i> <p>No tasks due this week.</p></div>`;
         } else {
-            thisWeeksTasks.forEach(task => weekTasksContainer.appendChild(createTaskCard(task, false)));
+            thisWeeksTasks.forEach(task => {
+                const hasDueSubtask = tasksWithDueSubtasksThisWeek.has(task.id);
+                weekTasksContainer.appendChild(createTaskCard(task, false, hasDueSubtask));
+            });
         }
         kanbanBoard.appendChild(weekColumn);
     };
 
-    const createTaskCard = (task, isDraggable = true) => {
+    const createTaskCard = (task, isDraggable = true, hasDueSubtask = false) => {
         const card = document.createElement('div');
         const today = new Date();
         today.setHours(0,0,0,0);
@@ -208,17 +230,14 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         card.className = `task-card ${isLate ? 'late' : ''}`;
         card.dataset.id = task.id;
         card.draggable = isDraggable;
-        
-        // Find the category of the root parent task
-        const rootTask = task.parentId ? findTaskById(task.parentId) || task : task;
-        const categoryColor = categories[rootTask.category] || 'transparent';
-        card.style.setProperty('--card-category-color', categoryColor);
+        card.style.setProperty('--card-category-color', categories[task.category] || 'transparent');
         
         const allAssignees = Array.from(getAllAssignees(task));
         const assigneeStackHTML = allAssignees.map(p => `<div class="card-assignee-icon" style="background-color: ${people[p] || '#ccc'}" title="${p}">${getInitials(p)}</div>`).join('');
         const urgentIconHTML = task.isUrgent ? '<i class="fas fa-exclamation-circle urgent-icon" title="Urgent"></i>' : '';
         const quickCloseBtnHTML = task.status !== 'Closed' ? `<button class="task-card-quick-close" data-task-id="${task.id}" title="Mark as Closed"><i class="fas fa-check-circle"></i></button>` : '';
-        
+        const subtaskIndicatorHTML = hasDueSubtask ? '<div class="subtask-due-indicator" title="Sub-task due this period"><i class="fas fa-sitemap"></i></div>' : '';
+
         let displayProgress = 0;
         if (task.status === 'Closed') {
             displayProgress = 100;
@@ -234,29 +253,29 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             </div>
         `;
 
-        const titleHTML = task.parentTaskName
-            ? `<span class="subtask-indicator">[SUB]</span> ${task.name} <small class="parent-task-indicator">of ${task.parentTaskName}</small>`
-            : `<span>${task.name}</span>`;
-
         card.innerHTML = `
-            ${quickCloseBtnHTML}
-            ${urgentIconHTML}
-            ${isLate ? '<div class="overdue-label">Overdue</div>' : ''}
+            <div class="card-top-indicators">
+                ${isLate ? '<div class="overdue-label">Overdue</div>' : ''}
+                <div class="top-right-indicators">
+                    ${subtaskIndicatorHTML}
+                    ${urgentIconHTML}
+                    ${quickCloseBtnHTML}
+                </div>
+            </div>
             <h4 class="task-card-title">
-                ${titleHTML}
+                <span>${task.name}</span>
                 <div class="title-assignee-stack">${assigneeStackHTML}</div>
             </h4>
             <p class="task-card-description">${task.description || ''}</p>
             <div class="task-card-footer">
                 <span class="task-card-due-date"><i class="far fa-calendar-alt"></i>&nbsp;${formatDateForDisplay(task.dueDate)}</span>
-                <span class="task-card-category-tag" style="background-color: ${categoryColor}">${rootTask.category}</span>
+                <span class="task-card-category-tag" style="background-color: ${categories[task.category] || '#ccc'}">${task.category}</span>
             </div>
             ${progressBarHTML}
         `;
         card.addEventListener('click', (e) => {
             if (e.target.closest('.task-card-quick-close')) return;
-            const rootParentId = task.parentId || task.id;
-            openTaskModal(rootParentId)
+            openTaskModal(task.id)
         });
         if (isDraggable) {
             card.addEventListener('dragstart', handleDragStart);
