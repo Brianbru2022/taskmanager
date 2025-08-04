@@ -353,16 +353,14 @@ subTask.closedDate = new Date().toISOString();
 
         header.querySelector('.sub-task-status').addEventListener('change', (e) => {
             const subTask = findTaskById(e.target.dataset.taskId);
-            if (subTask) {
+            if (subTask && currentEditingTask) {
                 subTask.status = e.target.value;
                 if (subTask.status === 'Closed') {
                     handleSubtaskClose(subTask.id);
- 
-
-               } else {
+                } else {
                     saveState();
                     openTaskModal(currentEditingTask.id);
-               }
+                }
             }
         });
 header.querySelector('.sub-task-quick-close').addEventListener('click', (e) => {
