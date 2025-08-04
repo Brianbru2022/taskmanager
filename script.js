@@ -5,6 +5,7 @@
     const SUBTASK_COLORS = ['subtask-color-1', 'subtask-color-2', 'subtask-color-3', 'subtask-color-4', 'subtask-color-5'];
     let currentEditingTask = null;
     let currentLinkTask = null;
+    let currentView = 'kanban'; // 'kanban' or 'list'
 
     // --- UTILITY & HELPER FUNCTIONS ---
     const saveState = () => { localStorage.setItem('tasks', JSON.stringify(tasks)); localStorage.setItem('categories', JSON.stringify(categories)); localStorage.setItem('people', JSON.stringify(people)); localStorage.setItem('passwords',
@@ -15,7 +16,14 @@ JSON.stringify(passwords)); localStorage.setItem('websites', JSON.stringify(webs
     const formatDate = (isoDate) => isoDate ? new Date(isoDate).toLocaleString('en-GB') : 'N/A';
     const formatDateForDisplay = (isoDate) => isoDate ?
 new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A';
-    const renderAndPopulate = () => { renderKanbanBoard(); populateAllDropdowns(); };
+    const renderAndPopulate = () => { 
+        if (currentView === 'kanban') {
+            renderKanbanBoard(); 
+        } else {
+            renderListView();
+        }
+        populateAllDropdowns(); 
+    };
     const addWeekdays = (date, days) => {
         let newDate = new Date(date);
         let addedDays = 0;
@@ -40,12 +48,12 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
     // --- DOM ELEMENT SELECTION ---
     const get = (id) => document.getElementById(id);
     const queryAll = (selector) => document.querySelectorAll(selector);
-    const kanbanBoard = get('kanbanBoard'), openNewTaskModalBtn = get('openNewTaskModalBtn'), assigneeFilter = get('assigneeFilter'), categoryFilter = get('categoryFilter'), sortByDate = get('sortByDate'), closedTasksFilter = get('closedTasksFilter'), taskModal = get('taskModal'), taskForm = get('taskForm'), modalTitle = get('modalTitle'), manageTaskHeader = get('manageTaskHeader'), taskNameInput = get('taskName'), taskDescriptionInput = get('taskDescription'), dueDateInput = get('dueDate'), taskUrgentInput = get('taskUrgent'), taskAssigneeSelect = get('taskAssignee'), categorySelect = get('categorySelect'), taskStatusSelect = get('taskStatus'), taskProgressInput = get('taskProgress'), progressContainer = get('progress-container'), deleteTaskBtn = get('deleteTaskBtn'), archiveTaskBtn = get('archiveTaskBtn'), addNewCategoryBtn = get('addNewCategoryBtn'), categoryModal = get('categoryModal'), categoryForm = get('categoryForm'), newCategoryNameInput = get('newCategoryName'), addNewPersonBtn = get('addNewPersonBtn'), personModal = get('personModal'), personForm = get('personForm'), newPersonNameInput = get('newPersonName'), subTaskSection = get('subTaskSection'), subtasksListContainer = get('subtasksListContainer'),
+    const kanbanBoard = get('kanbanBoard'), listViewContainer = get('listViewContainer'), kanbanViewBtn = get('kanbanViewBtn'), listViewBtn = get('listViewBtn'), openNewTaskModalBtn = get('openNewTaskModalBtn'), assigneeFilter = get('assigneeFilter'), categoryFilter = get('categoryFilter'), sortByDate = get('sortByDate'), closedTasksFilter = get('closedTasksFilter'), taskModal = get('taskModal'), taskForm = get('taskForm'), modalTitle = get('modalTitle'), manageTaskHeader = get('manageTaskHeader'), taskNameInput = get('taskName'), taskDescriptionInput = get('taskDescription'), dueDateInput = get('dueDate'), taskUrgentInput = get('taskUrgent'), taskAssigneeSelect = get('taskAssignee'), categorySelect = get('categorySelect'), taskStatusSelect = get('taskStatus'), taskProgressInput = get('taskProgress'), progressContainer = get('progress-container'), deleteTaskBtn = get('deleteTaskBtn'), archiveTaskBtn = get('archiveTaskBtn'), addNewCategoryBtn = get('addNewCategoryBtn'), categoryModal = get('categoryModal'), categoryForm = get('categoryForm'), newCategoryNameInput = get('newCategoryName'), addNewPersonBtn = get('addNewPersonBtn'), personModal = get('personModal'), personForm = get('personForm'), newPersonNameInput = get('newPersonName'), subTaskSection = get('subTaskSection'), subtasksListContainer = get('subtasksListContainer'),
     addSubTaskFormContainer = get('addSubTaskFormContainer'), mainLogControls = get('mainLogControls'), logSummarySection = get('logSummarySection'), logSummaryContainer = get('logSummaryContainer'), reportsLink = get('reportsLink'), settingsBtn = get('settingsBtn'), settingsModal = get('settingsModal'), peopleList = get('peopleList'), categoryList = get('categoryList'), settingsPersonForm = get('settingsPersonForm'), settingsCategoryForm = get('settingsCategoryForm'), settingsPersonNameInput = get('settingsPersonName'), settingsCategoryNameInput = get('settingsCategoryName'), passwordList = get('passwordList'), settingsPasswordForm = get('settingsPasswordForm'), settingsPasswordServiceInput = get('settingsPasswordService'), settingsPasswordUsernameInput = get('settingsPasswordUsername'), settingsPasswordValueInput = get('settingsPasswordValue'), openPasswordModalBtn = get('openPasswordModalBtn'), passwordModal = get('passwordModal'), passwordModalTitle = get('passwordModalTitle'), passwordIdInput = get('passwordId'), settingsPasswordLinkInput = get('settingsPasswordLink'), linkModal = get('linkModal'), linkForm = get('linkForm'), linkNameInput = get('linkName'), linkUrlInput
     = get('linkUrl'), existingLinksList = get('existingLinksList'), websiteList = get('websiteList'), openWebsiteModalBtn = get('openWebsiteModalBtn'), websiteModal = get('websiteModal'), globalSearchInput = get('globalSearchInput');
 
     // --- DATA SANITIZATION & INITIAL LOAD ---
-    const sanitizeTask = (task) => { const defaults = { name: 'Untitled', description: '', dueDate: new Date().toISOString().split('T')[0], assignee: null, category: 'Uncategorized', status: 'Open', subtasks: [], log: [], isArchived: false, isUrgent: false, closedDate: null, progress: null, links: [], archivedDate: null };
+    const sanitizeTask = (task) => { const defaults = { name: 'Untitled', description: '', dueDate: new Date().toISOString().split('T')[0], assignee: null, category: 'Uncategorized', status: 'Open', subtasks: [], log: [], isArchived: false, isUrgent: false, closedDate: null, progress: null, links: [], archivedDate: null, isCollapsed: false };
     const sanitized = { ...defaults, ...task }; sanitized.subtasks = (sanitized.subtasks || []).map(sub => ({...defaults, ...sub})); return sanitized; };
     const sanitizePassword = (p) => ({ id: getNextId('PWD'), service: 'Untitled', username: '', value: '', link: '', ...p });
     const sanitizeWebsite = (w) => ({ id: getNextId('WEB'), service: 'Untitled', username: '', value: '', link: '', ...w });
@@ -511,8 +519,21 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             return; // No open subtasks to base the date on
         }
 
-        const latestSubtaskDueDate = new Date(Math.max(...allSubtasks.map(st => new Date(st.dueDate))));
-        const currentMainDueDate = new Date(task.dueDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Use a consistent local timezone parsing for sub-task dates
+        const hasOverdueSubtask = allSubtasks.some(st => new Date(st.dueDate + 'T00:00:00') < today);
+
+        if (hasOverdueSubtask) {
+            const newDueDate = new Date(); // Start from today
+            newDueDate.setDate(newDueDate.getDate() + 7);
+            task.dueDate = newDueDate.toISOString().split('T')[0];
+            return; // Overdue rule takes precedence
+        }
+
+        const latestSubtaskDueDate = new Date(Math.max(...allSubtasks.map(st => new Date(st.dueDate + 'T00:00:00'))));
+        const currentMainDueDate = new Date(task.dueDate + 'T00:00:00');
 
         if (latestSubtaskDueDate > currentMainDueDate) {
             const newMainDueDate = new Date(latestSubtaskDueDate);
@@ -1163,8 +1184,8 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         get('generateAssigneeReportBtn').addEventListener('click', generateAssigneeReport);
         get('generateOverdueReportBtn').addEventListener('click', generateOverdueReport);
 
-        [assigneeFilter, categoryFilter, sortByDate, closedTasksFilter].forEach(el => el.addEventListener('change', renderKanbanBoard));
-        globalSearchInput.addEventListener('input', renderKanbanBoard);
+        [assigneeFilter, categoryFilter, sortByDate, closedTasksFilter].forEach(el => el.addEventListener('change', renderAndPopulate));
+        globalSearchInput.addEventListener('input', renderAndPopulate);
         categoryForm.addEventListener('submit', e => { e.preventDefault(); const newCat = newCategoryNameInput.value.trim(); if (newCat && !categories[newCat]) { categories[newCat] = generateRandomColor(); saveState(); categorySelect.value = newCat; } categoryForm.reset(); closeModal(categoryModal); });
         personForm.addEventListener('submit', e => { e.preventDefault(); const newName = newPersonNameInput.value.trim(); if (newName) { if (!people[newName]) { people[newName] = generateRandomColor(); saveState(); populateAllDropdowns(); } if (activeAssigneeSelect) { activeAssigneeSelect.value = newName; } } personForm.reset(); closeModal(personModal); });
         taskDescriptionInput.addEventListener('input', e => { e.target.style.height = 'auto'; e.target.style.height = (e.target.scrollHeight) + 'px'; });
@@ -1263,6 +1284,24 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                     openTaskModal(li.dataset.taskId);
                 }
             });
+        });
+
+        kanbanViewBtn.addEventListener('click', () => {
+            currentView = 'kanban';
+            kanbanBoard.style.display = 'flex';
+            listViewContainer.style.display = 'none';
+            kanbanViewBtn.classList.add('active');
+            listViewBtn.classList.remove('active');
+            renderKanbanBoard();
+        });
+
+        listViewBtn.addEventListener('click', () => {
+            currentView = 'list';
+            kanbanBoard.style.display = 'none';
+            listViewContainer.style.display = 'block';
+            kanbanViewBtn.classList.remove('active');
+            listViewBtn.classList.add('active');
+            renderListView();
         });
 
         renderAndPopulate();
