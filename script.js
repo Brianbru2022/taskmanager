@@ -7,15 +7,16 @@
     let currentLinkTask = null;
 
     // --- UTILITY & HELPER FUNCTIONS ---
-    const saveState = () => { localStorage.setItem('tasks', JSON.stringify(tasks)); localStorage.setItem('categories', JSON.stringify(categories)); localStorage.setItem('people', JSON.stringify(people)); localStorage.setItem('passwords',
+    const saveState = () => { localStorage.setItem('tasks', JSON.stringify(tasks)); localStorage.setItem('categories', 
+JSON.stringify(categories)); localStorage.setItem('people', JSON.stringify(people)); localStorage.setItem('passwords',
 JSON.stringify(passwords)); localStorage.setItem('websites', JSON.stringify(websites)); renderAndPopulate(); };
     const generateRandomColor = () => `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`;
     const getInitials = (name) => (name || '').split(' ').map(n => n[0]).join('').toUpperCase();
-    const getNextId = (prefix = 'TASK') => `${prefix}-${Date.now()}`;
+const getNextId = (prefix = 'TASK') => `${prefix}-${Date.now()}`;
 const formatDate = (isoDate) => isoDate ? new Date(isoDate).toLocaleString('en-GB') : 'N/A';
-    const formatDateForDisplay = (isoDate) => isoDate ?
+const formatDateForDisplay = (isoDate) => isoDate ?
 new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A';
-    const renderAndPopulate = () => { renderKanbanBoard(); populateAllDropdowns();
+const renderAndPopulate = () => { renderKanbanBoard(); populateAllDropdowns();
 };
     const addWeekdays = (date, days) => {
         let newDate = new Date(date);
@@ -42,14 +43,14 @@ toast.classList.add('show');
     const get = (id) => document.getElementById(id);
 const queryAll = (selector) => document.querySelectorAll(selector);
     const kanbanBoard = get('kanbanBoard'), openNewTaskModalBtn = get('openNewTaskModalBtn'), assigneeFilter = get('assigneeFilter'), categoryFilter = get('categoryFilter'), sortByDate = get('sortByDate'), closedTasksFilter = get('closedTasksFilter'), taskModal = get('taskModal'), taskForm = get('taskForm'), modalTitle = get('modalTitle'), manageTaskHeader = get('manageTaskHeader'), taskNameInput = get('taskName'), taskDescriptionInput = get('taskDescription'), dueDateInput = get('dueDate'), taskUrgentInput = get('taskUrgent'), taskAssigneeSelect = get('taskAssignee'), categorySelect = get('categorySelect'), taskStatusSelect = get('taskStatus'), taskProgressInput = get('taskProgress'), progressContainer = get('progress-container'), deleteTaskBtn = get('deleteTaskBtn'), archiveTaskBtn = get('archiveTaskBtn'), addNewCategoryBtn = get('addNewCategoryBtn'), categoryModal = get('categoryModal'), categoryForm = get('categoryForm'), newCategoryNameInput = get('newCategoryName'), addNewPersonBtn = get('addNewPersonBtn'), personModal = get('personModal'), personForm = get('personForm'), newPersonNameInput = get('newPersonName'), subTaskSection = get('subTaskSection'), subtasksListContainer = get('subtasksListContainer'),
-addSubTaskFormContainer = get('addSubTaskFormContainer'), mainLogControls = get('mainLogControls'), logSummarySection = get('logSummarySection'), logSummaryContainer = get('logSummaryContainer'), reportsLink = get('reportsLink'), settingsBtn = get('settingsBtn'), settingsModal = get('settingsModal'), peopleList = get('peopleList'), categoryList = get('categoryList'), settingsPersonForm = get('settingsPersonForm'), settingsCategoryForm = get('settingsCategoryForm'), settingsPersonNameInput = get('settingsPersonName'), settingsCategoryNameInput = get('settingsCategoryName'), passwordList = get('passwordList'), settingsPasswordForm = get('settingsPasswordForm'), settingsPasswordServiceInput = get('settingsPasswordService'), settingsPasswordUsernameInput = get('settingsPasswordUsername'), settingsPasswordValueInput = get('settingsPasswordValue'), openPasswordModalBtn = get('openPasswordModalBtn'), passwordModal = get('passwordModal'), passwordModalTitle = get('passwordModalTitle'), passwordIdInput = get('passwordId'), settingsPasswordLinkInput = get('settingsPasswordLink'), linkModal = get('linkModal'), linkForm = get('linkForm'), linkNameInput = get('linkName'), linkUrlInput
+addSubTaskFormContainer 
+= get('addSubTaskFormContainer'), mainLogControls = get('mainLogControls'), logSummarySection = get('logSummarySection'), logSummaryContainer = get('logSummaryContainer'), reportsLink = get('reportsLink'), settingsBtn = get('settingsBtn'), settingsModal = get('settingsModal'), peopleList = get('peopleList'), categoryList = get('categoryList'), settingsPersonForm = get('settingsPersonForm'), settingsCategoryForm = get('settingsCategoryForm'), settingsPersonNameInput = get('settingsPersonName'), settingsCategoryNameInput = get('settingsCategoryName'), passwordList = get('passwordList'), settingsPasswordForm = get('settingsPasswordForm'), settingsPasswordServiceInput = get('settingsPasswordService'), settingsPasswordUsernameInput = get('settingsPasswordUsername'), settingsPasswordValueInput = get('settingsPasswordValue'), openPasswordModalBtn = get('openPasswordModalBtn'), passwordModal = get('passwordModal'), passwordModalTitle = get('passwordModalTitle'), passwordIdInput = get('passwordId'), settingsPasswordLinkInput = get('settingsPasswordLink'), linkModal = get('linkModal'), linkForm = get('linkForm'), linkNameInput = get('linkName'), linkUrlInput
 = get('linkUrl'), existingLinksList = get('existingLinksList'), websiteList = get('websiteList'), openWebsiteModalBtn = get('openWebsiteModalBtn'), websiteModal = get('websiteModal'), globalSearchInput = get('globalSearchInput');
-
-    // --- DATA SANITIZATION & INITIAL LOAD ---
+// --- DATA SANITIZATION & INITIAL LOAD ---
     const sanitizeTask = (task) => { const defaults = { name: 'Untitled', description: '', dueDate: new Date().toISOString().split('T')[0], assignee: null, category: 'Uncategorized', status: 'Open', subtasks: [], log: [], isArchived: false, isUrgent: false, closedDate: null, progress: null, links: [], archivedDate: null };
 const sanitized = { ...defaults, ...task }; sanitized.subtasks = (sanitized.subtasks || []).map(sub => ({...defaults, ...sub})); return sanitized; };
 const sanitizePassword = (p) => ({ id: getNextId('PWD'), service: 'Untitled', username: '', value: '', link: '', ...p });
-    const sanitizeWebsite = (w) => ({ id: getNextId('WEB'), service: 'Untitled', username: '', value: '', link: '', ...w });
+const sanitizeWebsite = (w) => ({ id: getNextId('WEB'), service: 'Untitled', username: '', value: '', link: '', ...w });
 const loadData = () => { try { tasks = (JSON.parse(localStorage.getItem('tasks')) || []).map(sanitizeTask); categories = JSON.parse(localStorage.getItem('categories')) || {};
 people = JSON.parse(localStorage.getItem('people')) || {}; passwords = (JSON.parse(localStorage.getItem('passwords')) || []).map(sanitizePassword);
         websites = (JSON.parse(localStorage.getItem('websites')) || []).map(sanitizeWebsite);
@@ -58,7 +59,8 @@ const addSampleData = () => { if (tasks.length > 0 || Object.keys(people).length
 people = { 'Alice Johnson': '#0d6efd', 'Bob Smith': '#dc3545', 'Charlie Brown': '#ffc107', 'Diana Prince': '#6f42c1' };
 categories = { 'Design': '#20c997', 'Backend': '#fd7e14', 'DevOps': '#6610f2', 'Frontend': '#0dcaf0' };
 const sampleTasks = [ { id: 'TASK-1', name: 'Design Homepage Mockups', description: 'Create high-fidelity mockups for the new homepage in Figma.', dueDate: '2025-08-20', assignee: 'Alice Johnson', category: 'Design', status: 'In Progress', isUrgent: true, progress: 75, links: [{name: "Figma Mockup", url: "https://figma.com"}] }, { id: 'TASK-2', name: 'Setup Production Server', description: 'Configure AWS EC2 instance and RDS for production deployment.', dueDate: new Date().toISOString().split('T')[0], assignee: 'Diana Prince', category: 'DevOps', status: 'Open', subtasks: [ { id: 'SUB-1', name: 'Install Nginx', description: 'Set up the web server.', assignee: 'Diana Prince', dueDate: new Date().toISOString().split('T')[0], status: 'Open', links: [] } ], links: [] }, { id:
-'TASK-3', name: 'Fix Login Bug', description: 'Users are redirected to the wrong page after login.', dueDate: '2025-07-20', assignee: 'Charlie Brown', category: 'Frontend', status: 'Open', links: [] } ];
+'TASK-3', 
+name: 'Fix Login Bug', description: 'Users are redirected to the wrong page after login.', dueDate: '2025-07-20', assignee: 'Charlie Brown', category: 'Frontend', status: 'Open', links: [] } ];
 tasks = sampleTasks.map(sanitizeTask); saveState(); };
 
     // --- DRAG AND DROP HANDLERS ---
@@ -84,15 +86,39 @@ logAction(task, `Task status changed to Closed.`);
             saveState();
         }
     };
+    const getAllActiveSubtasks = () => {
+        const allSubtasks = [];
+        const traverse = (subtasks, topLevelParent) => {
+            (subtasks || []).forEach(sub => {
+                if (sub.status !== 'Closed') {
+                    allSubtasks.push({
+                        ...sub,
+                        parentId: topLevelParent.id,
+                        parentName: topLevelParent.name,
+                        category: topLevelParent.category,
+                        isUrgent: topLevelParent.isUrgent
+                    });
+                }
+                if (sub.subtasks && sub.subtasks.length > 0) {
+                    traverse(sub.subtasks, topLevelParent);
+                }
+            });
+        };
+        tasks.forEach(task => {
+            if (!task.isArchived && task.subtasks) {
+                traverse(task.subtasks, task);
+            }
+        });
+        return allSubtasks;
+    };
 // --- CORE RENDERING ---
     const renderKanbanBoard = () => {
         const searchTerm = globalSearchInput.value.toLowerCase();
-        const activeTasks = tasks.filter(t => !t.isArchived);
-let filteredTasks = activeTasks;
-        
-        if (searchTerm) {
+const activeTasks = tasks.filter(t => !t.isArchived);
+        let filteredTasks = activeTasks;
+if (searchTerm) {
             filteredTasks = activeTasks.filter(t => t.name.toLowerCase().includes(searchTerm) || t.description.toLowerCase().includes(searchTerm));
-        } else {
+} else {
             if (assigneeFilter.value !== 'all') filteredTasks = filteredTasks.filter(t => getAllAssignees(t).has(assigneeFilter.value));
 if (categoryFilter.value !== 'all') filteredTasks = filteredTasks.filter(t => t.category === categoryFilter.value);
         
@@ -105,7 +131,7 @@ const sevenDaysAgo = new Date();
                 if (showAllClosed) return true;
                 return task.closedDate && new Date(task.closedDate) > sevenDaysAgo;
             });
-        }
+}
 // Sort tasks: urgent tasks first, then by the selected date sorting
         filteredTasks.sort((a, b) => {
             if (a.isUrgent && !b.isUrgent) return -1;
@@ -113,13 +139,15 @@ const sevenDaysAgo = new Date();
             const dateA = new Date(a.dueDate);
             const dateB = new Date(b.dueDate);
             
+
 return sortByDate.value === 'oldest' ? dateA - dateB : dateB - dateA;
         });
 const groupedTasks = KANBAN_STATUSES.reduce((acc, status) => ({ ...acc, [status]: [] }), {});
 filteredTasks.forEach(task => { if (groupedTasks[task.status]) { groupedTasks[task.status].push(task); } });
         kanbanBoard.innerHTML = '';
 const headerColors = { 'Open': '#6c757d', 'In Progress': '#B4975A', 'Closed': '#1E4D2B' };
-        const emptyStateMessages = { 'Open': "No open tasks. Let's add one!", 'In Progress': "Nothing in progress. Time to start a task!", 'Closed': "No tasks closed recently." };
+const emptyStateMessages = { 'Open': "No open tasks. Let's add one!", 'In Progress': "Nothing in progress. Time to start a task!", 'Closed': "No tasks closed recently."
+};
 
 // Render status columns
         KANBAN_STATUSES.forEach(status => {
@@ -128,7 +156,8 @@ const headerColors = { 'Open': '#6c757d', 'In Progress': '#B4975A', 'Closed': '#
             column.dataset.status = status;
             const tasksForStatus = groupedTasks[status] || [];
             column.innerHTML = `<div class="column-header"><span>${status}</span><span class="task-count" style="background-color: ${headerColors[status]}">${tasksForStatus.length}</span></div><div class="tasks-container"></div>`;
-            const tasksContainer = column.querySelector('.tasks-container');
+       
+     const tasksContainer = column.querySelector('.tasks-container');
             
             if (tasksForStatus.length === 0) {
                 tasksContainer.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i> <p>${emptyStateMessages[status]}</p></div>`;
@@ -136,42 +165,48 @@ const headerColors = { 'Open': '#6c757d', 'In Progress': '#B4975A', 'Closed': '#
     tasksForStatus.forEach(task => tasksContainer.appendChild(createTaskCard(task)));
             }
 
-            column.addEventListener('dragover', handleDragOver);
+          
+  column.addEventListener('dragover', handleDragOver);
             column.addEventListener('dragleave', handleDragLeave);
             column.addEventListener('drop', handleDrop);
             kanbanBoard.appendChild(column);
-        });
+});
+
+        const activeSubtasks = getAllActiveSubtasks();
+        const allActiveItems = [...activeTasks, ...activeSubtasks];
+
 // Render "Today's Tasks" column
         const today = new Date();
 today.setHours(0, 0, 0, 0);
-        const todaysTasks = activeTasks.filter(t => new Date(t.dueDate) <= today && t.status !== 'Closed');
+        const todaysTasks = allActiveItems.filter(t => new Date(t.dueDate) <= today && t.status !== 'Closed');
 const column = document.createElement('div');
         column.className = 'kanban-column todays-tasks';
         column.innerHTML = `<div class="column-header"><span>Today's Tasks</span><span class="task-count" style="background-color: var(--color-accent-warning)">${todaysTasks.length}</span></div><div class="tasks-container"></div>`;
 const tasksContainerToday = column.querySelector('.tasks-container');
         if (todaysTasks.length === 0) {
-            tasksContainerToday.innerHTML = `<div class="empty-state"><i class="fas fa-coffee"></i> <p>No tasks due today. Enjoy the break!</p></div>`;
+            tasksContainerToday.innerHTML = `<div class="empty-state"><i class="fas fa-coffee"></i> <p>No tasks due today.
+Enjoy the break!</p></div>`;
         } else {
             todaysTasks.forEach(task => tasksContainerToday.appendChild(createTaskCard(task, false)));
-        }
+}
         kanbanBoard.appendChild(column);
 
         // Render "This Week's Tasks" column
         const nextWeek = new Date();
-        nextWeek.setDate(today.getDate() + 7);
-        const thisWeeksTasks = activeTasks.filter(t => {
+nextWeek.setDate(today.getDate() + 7);
+        const thisWeeksTasks = allActiveItems.filter(t => {
             const dueDate = new Date(t.dueDate);
             return dueDate > today && dueDate <= nextWeek && t.status !== 'Closed';
         });
-        const weekColumn = document.createElement('div');
+const weekColumn = document.createElement('div');
         weekColumn.className = 'kanban-column this-week-tasks';
         weekColumn.innerHTML = `<div class="column-header"><span>This Week's Tasks</span><span class="task-count" style="background-color: #1890ff">${thisWeeksTasks.length}</span></div><div class="tasks-container"></div>`;
-        const weekTasksContainer = weekColumn.querySelector('.tasks-container');
+const weekTasksContainer = weekColumn.querySelector('.tasks-container');
         if (thisWeeksTasks.length === 0) {
             weekTasksContainer.innerHTML = `<div class="empty-state"><i class="fas fa-calendar-check"></i> <p>No tasks due this week.</p></div>`;
-        } else {
+} else {
             thisWeeksTasks.forEach(task => weekTasksContainer.appendChild(createTaskCard(task, false)));
-        }
+}
         kanbanBoard.appendChild(weekColumn);
     };
 const createTaskCard = (task, isDraggable = true) => {
@@ -188,16 +223,17 @@ const today = new Date();
 const assigneeStackHTML = allAssignees.map(p => `<div class="card-assignee-icon" style="background-color: ${people[p] || '#ccc'}" title="${p}">${getInitials(p)}</div>`).join('');
         const urgentIconHTML = task.isUrgent ?
 '<i class="fas fa-exclamation-circle urgent-icon" title="Urgent"></i>' : '';
-        const quickCloseBtnHTML = task.status !== 'Closed' ? `<button class="task-card-quick-close" data-task-id="${task.id}" title="Mark as Closed"><i class="fas fa-check-circle"></i></button>` : '';
+        const quickCloseBtnHTML = task.status !== 'Closed' && !task.parentId ?
+`<button class="task-card-quick-close" data-task-id="${task.id}" title="Mark as Closed"><i class="fas fa-check-circle"></i></button>` : '';
         
         let displayProgress = 0;
 if (task.status === 'Closed') {
             displayProgress = 100;
-        } else if (typeof task.progress === 'number' && task.progress >= 0) {
+} else if (typeof task.progress === 'number' && task.progress >= 0) {
             displayProgress = task.progress;
-        } else if (task.status === 'In Progress') {
+} else if (task.status === 'In Progress') {
             displayProgress = 50;
-        }
+}
 
         const progressBarHTML = `
             <div class="progress-bar-container">
@@ -210,7 +246,7 @@ card.innerHTML = `
             ${isLate ?
 '<div class="overdue-label">Overdue</div>' : ''}
             <h4 class="task-card-title">
-                <span>${task.name}</span>
+                <span>${task.parentName ? `<b>${task.parentName}:</b> ${task.name}` : task.name}</span>
                 <div class="title-assignee-stack">${assigneeStackHTML}</div>
             </h4>
             <p class="task-card-description">${task.description ||
@@ -223,26 +259,27 @@ card.innerHTML = `
             `;
 card.addEventListener('click', (e) => {
             if (e.target.closest('.task-card-quick-close')) return;
-            openTaskModal(task.id)
+            openTaskModal(task.parentId || task.id)
         });
-        if (isDraggable) {
+if (isDraggable) {
             card.addEventListener('dragstart', handleDragStart);
 card.addEventListener('dragend', handleDragEnd);
-        }
+}
 
         const quickCloseBtn = card.querySelector('.task-card-quick-close');
-        if (quickCloseBtn) {
+if (quickCloseBtn) {
             quickCloseBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const taskToClose = findTaskById(e.currentTarget.dataset.taskId);
                 if (taskToClose && taskToClose.status !== 'Closed') {
                     taskToClose.status = 'Closed';
-                    taskToClose.closedDate = new Date().toISOString();
+    
+                taskToClose.closedDate = new Date().toISOString();
                     logAction(taskToClose, `Task status changed to Closed.`);
                     saveState();
                 }
             });
-        }
+}
         return card;
     };
 const renderSubTask = (taskObject, level = 0) => {
@@ -261,7 +298,7 @@ header.className = `sub-task-header ${isExpanded ? '' : 'collapsed'}`;
 const statusDropdownHTML = `<select class="sub-task-status" data-task-id="${taskObject.id}">${KANBAN_STATUSES.map(s => `<option value="${s}" ${taskObject.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>`;
 const quickCloseBtnHTML = `<button class="sub-task-quick-close" data-task-id="${taskObject.id}" title="Mark as Closed"><i class="fas fa-check-circle"></i></button>`;
 
-        header.innerHTML = `<span class="sub-task-toggle"><i class="fas fa-chevron-down"></i></span><span class="sub-task-title">${taskObject.name}</span>${assigneeIcon}<span><strong>Due:</strong> ${formatDateForDisplay(taskObject.dueDate)}</span>${statusDropdownHTML}${quickCloseBtnHTML}`;
+        header.innerHTML = `<span class="sub-task-toggle"><i class="fas fa-chevron-down"></i></span><span class="sub-task-title">${taskObject.name}</span>${assigneeIcon}<span><strong>Due:</strong> <input type="date" class="sub-task-due-date" value="${taskObject.dueDate}" data-task-id="${taskObject.id}"></span>${statusDropdownHTML}${quickCloseBtnHTML}`;
 const body = document.createElement('div');
         body.className = `sub-task-body ${isExpanded ? '' : 'collapsed'}`;
         
@@ -288,6 +325,20 @@ linksSection.appendChild(linksList);
         body.appendChild(createSubtaskForm(taskObject));
         container.append(header, body);
 header.addEventListener('click', (e) => { if (e.target.closest('button,select,input')) return; isExpanded ? expandedSubtasks.delete(taskObject.id) : expandedSubtasks.add(taskObject.id); header.classList.toggle('collapsed'); body.classList.toggle('collapsed'); });
+        
+        container.querySelector('.sub-task-due-date').addEventListener('change', (e) => {
+            const subTaskId = e.target.dataset.taskId;
+            const newDueDate = e.target.value;
+            const subTask = findTaskById(subTaskId);
+            if (subTask && currentEditingTask) {
+                subTask.dueDate = newDueDate;
+                logAction(currentEditingTask, `Due date for sub-task "${subTask.name}" changed to ${formatDateForDisplay(newDueDate)}.`, subTask.assignee);
+                updateMainTaskDueDate(currentEditingTask);
+                saveState();
+                openTaskModal(currentEditingTask.id);
+            }
+        });
+
 const handleSubtaskClose = (subTaskId) => {
             const subTask = findTaskById(subTaskId);
 if (subTask && subTask.status !== 'Closed') {
@@ -307,6 +358,7 @@ subTask.closedDate = new Date().toISOString();
                 if (subTask.status === 'Closed') {
                     handleSubtaskClose(subTask.id);
  
+
                }
             }
         });
@@ -440,6 +492,7 @@ const updateMainTaskDueDate = (task) => {
                     collectSubtasks(sub.subtasks);
                 }
        
+
      }
         })(task.subtasks);
 
@@ -511,27 +564,30 @@ if (task.subtasks && task.subtasks.length > 0) {
 
     const openSettingsModal = () => {
         peopleList.innerHTML = '';
-        const sortedPeople = Object.keys(people).sort((a, b) => a.localeCompare(b));
+const sortedPeople = Object.keys(people).sort((a, b) => a.localeCompare(b));
         if (sortedPeople.length === 0) {
             peopleList.innerHTML = `<div class="empty-state"><i class="fas fa-user-plus"></i><p>No people added yet.</p></div>`;
-        } else {
+} else {
 sortedPeople.forEach(person => {
                 const li = document.createElement('li');
                 const colorInputId = `person-color-${person.replace(/\s+/g, '-')}`;
                 li.innerHTML = `
                     <div class="settings-list-item">
-                        <label for="${colorInputId}" class="settings-color-swatch" style="background-color: ${people[person]}"></label>
+                  
+      <label for="${colorInputId}" class="settings-color-swatch" style="background-color: ${people[person]}"></label>
                 
         <input type="color" id="${colorInputId}" class="color-input" value="${people[person]}">
                         <span>${person}</span>
                     </div>
-                    <button class="settings-delete-btn" data-name="${person}">&times;</button>
+                  
+  <button class="settings-delete-btn" data-name="${person}">&times;</button>
                 `;
                 li.querySelector('.color-input').addEventListener('change', (e) => {
          people[person] = e.target.value;
                     saveState();
                     openSettingsModal();
-                });
+          
+      });
                 li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
                     const name = e.target.dataset.name;
 if (isPersonInUse(name)) {
@@ -545,30 +601,33 @@ saveState();
                     }
                 });
                 peopleList.appendChild(li);
-            });
+});
         }
 categoryList.innerHTML = '';
         const sortedCategories = Object.keys(categories).sort((a, b) => a.localeCompare(b));
-        if (sortedCategories.length === 0) {
+if (sortedCategories.length === 0) {
             categoryList.innerHTML = `<div class="empty-state"><i class="fas fa-tags"></i><p>No categories added yet.</p></div>`;
-        } else {
+} else {
 sortedCategories.forEach(cat => {
                 const li = document.createElement('li');
                 const colorInputId = `cat-color-${cat.replace(/\s+/g, '-')}`;
                 li.innerHTML = `
                     <div class="settings-list-item">
-                        <label for="${colorInputId}" class="settings-color-swatch" style="background-color: ${categories[cat]}"></label>
+                  
+      <label for="${colorInputId}" class="settings-color-swatch" style="background-color: ${categories[cat]}"></label>
                 
         <input type="color" id="${colorInputId}" class="color-input" value="${categories[cat]}">
                         <span>${cat}</span>
                     </div>
-                    <button class="settings-delete-btn" data-name="${cat}">&times;</button>
+                  
+  <button class="settings-delete-btn" data-name="${cat}">&times;</button>
                 `;
                 li.querySelector('.color-input').addEventListener('change', (e) => {
          categories[cat] = e.target.value;
                     saveState();
                     openSettingsModal();
-                });
+          
+      });
                 li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
                     const name = e.target.dataset.name;
 if (isCategoryInUse(name)) {
@@ -582,52 +641,57 @@ saveState();
                     }
                 });
                 categoryList.appendChild(li);
-            });
+});
         }
 passwordList.innerHTML = '';
         const sortedPasswords = [...passwords].sort((a, b) => a.service.localeCompare(b.service));
-        if (sortedPasswords.length === 0) {
+if (sortedPasswords.length === 0) {
             passwordList.innerHTML = `<div class="empty-state"><i class="fas fa-key"></i><p>No passwords saved.</p></div>`;
-        } else {
+} else {
 sortedPasswords.forEach(p => {
                 const li = document.createElement('li');
                 const linkHTML = p.link ? `<small><a href="${p.link}" target="_blank">${p.link}</a></small>` : '';
                 li.innerHTML = `
                     <div class="password-item-details">
-                        <strong>${p.service}</strong>
+             
+           <strong>${p.service}</strong>
                         <small>${p.username}</small>
                         ${linkHTML}
     </div>
                     <div class="password-field-container">
-                        <input type="password" value="${p.value}" readonly>
+                
+        <input type="password" value="${p.value}" readonly>
                         <button class="password-action-btn toggle-vis" title="Show/Hide Password"><i class="fas fa-eye"></i></button>
                         <button class="password-action-btn copy-pass" title="Copy Password"><i class="fas fa-copy"></i></button>
         
-                <button class="password-action-btn edit-pass" title="Edit Password"><i class="fas fa-edit"></i></button>
+                <button class="password-action-btn edit-pass" title="Edit Password"><i 
+class="fas fa-edit"></i></button>
                     </div>
                     <button class="settings-delete-btn" data-id="${p.id}">&times;</button>
                 `;
-                
-                const passInput = li.querySelector('input');
+const passInput = li.querySelector('input');
        const toggleBtn = li.querySelector('.toggle-vis');
                 const toggleIcon = toggleBtn.querySelector('i');
 toggleBtn.addEventListener('click', () => {
                     if (passInput.type === 'password') {
                         passInput.type = 'text';
                         toggleIcon.classList.remove('fa-eye');
-                        toggleIcon.classList.add('fa-eye-slash');
+                       
+ toggleIcon.classList.add('fa-eye-slash');
  } else {
                         passInput.type = 'password';
                         toggleIcon.classList.remove('fa-eye-slash');
                         toggleIcon.classList.add('fa-eye');
                     }
-                });
+  
+              });
 li.querySelector('.copy-pass').addEventListener('click', () => {
                     const originalType = passInput.type;
                     passInput.type = 'text';
                     passInput.select();
                     document.execCommand('copy');
-                    passInput.type = originalType;
+            
+        passInput.type = originalType;
       window.getSelection().removeAllRanges();
                     showToast('Password copied!');
                 });
@@ -638,7 +702,8 @@ li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
                     const id = e.target.dataset.id;
                     if (confirm(`Are you sure you want to delete the password for "${p.service}"?`)) {
                         passwords = passwords.filter(pwd => pwd.id !== id);
-                        saveState();
+            
+            saveState();
                 openSettingsModal();
                     }
                 });
@@ -647,68 +712,73 @@ passwordList.appendChild(li);
         }
         websiteList.innerHTML = '';
         const sortedWebsites = [...websites].sort((a,b) => a.service.localeCompare(b.service));
-        if (sortedWebsites.length === 0) {
+if (sortedWebsites.length === 0) {
             websiteList.innerHTML = `<div class="empty-state"><i class="fas fa-globe"></i><p>No websites saved.</p></div>`;
-        } else {
+} else {
             sortedWebsites.forEach(w => {
                 const li = document.createElement('li');
                 const linkHTML = w.link ? `<small><a href="${w.link}" target="_blank">${w.link}</a></small>` : '';
                 li.innerHTML = `
                     <div class="password-item-details">
-                        <strong>${w.service}</strong>
+ 
+                       <strong>${w.service}</strong>
                         <small>${w.username}</small>
                         ${linkHTML}
                     </div>
-                    <div class="password-field-container">
+         
+           <div class="password-field-container">
                         <input type="password" value="${w.value}" readonly>
                         <button class="password-action-btn toggle-vis" title="Show/Hide Password"><i class="fas fa-eye"></i></button>
                         <button class="password-action-btn copy-pass" title="Copy Password"><i class="fas fa-copy"></i></button>
-                        <button class="password-action-btn edit-pass" title="Edit Website"><i class="fas fa-edit"></i></button>
+ 
+                       <button class="password-action-btn edit-pass" title="Edit Website"><i class="fas fa-edit"></i></button>
                     </div>
                     <button class="settings-delete-btn" data-id="${w.id}">&times;</button>
                 `;
-                
-                const passInput = li.querySelector('input');
+const passInput = li.querySelector('input');
                 const toggleBtn = li.querySelector('.toggle-vis');
                 const toggleIcon = toggleBtn.querySelector('i');
-                toggleBtn.addEventListener('click', () => {
+toggleBtn.addEventListener('click', () => {
                     if (passInput.type === 'password') {
                         passInput.type = 'text';
                         toggleIcon.classList.remove('fa-eye');
-                        toggleIcon.classList.add('fa-eye-slash');
+                       
+ toggleIcon.classList.add('fa-eye-slash');
                     } else {
                         passInput.type = 'password';
                         toggleIcon.classList.remove('fa-eye-slash');
                         toggleIcon.classList.add('fa-eye');
-                    }
+   
+                 }
                 });
-                li.querySelector('.copy-pass').addEventListener('click', () => {
+li.querySelector('.copy-pass').addEventListener('click', () => {
                     const originalType = passInput.type;
                     passInput.type = 'text';
                     passInput.select();
                     document.execCommand('copy');
-                    passInput.type = originalType;
+            
+        passInput.type = originalType;
                     window.getSelection().removeAllRanges();
                     showToast('Password copied!');
                 });
-                li.querySelector('.edit-pass').addEventListener('click', () => {
+li.querySelector('.edit-pass').addEventListener('click', () => {
                     openWebsiteModal(w.id);
                 });
-                li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
+li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
                     const id = e.target.dataset.id;
                     if (confirm(`Are you sure you want to delete the website credentials for "${w.service}"?`)) {
                         websites = websites.filter(web => web.id !== id);
-                        saveState();
+           
+             saveState();
                         openSettingsModal();
                     }
                 });
-                websiteList.appendChild(li);
+websiteList.appendChild(li);
             });
         }
         openModal(settingsModal);
     };
-
-    // --- PASSWORD MODAL ---
+// --- PASSWORD MODAL ---
     const openPasswordModal = (passwordId = null) => {
         settingsPasswordForm.reset();
 passwordIdInput.value = '';
@@ -727,27 +797,25 @@ passwordIdInput.value = password.id;
 }
         openModal(passwordModal);
     };
-
-    // --- WEBSITE MODAL ---
+// --- WEBSITE MODAL ---
     const openWebsiteModal = (websiteId = null) => {
         get('settingsWebsiteForm').reset();
-        get('websiteId').value = '';
+get('websiteId').value = '';
         if (websiteId) {
             const website = websites.find(w => w.id === websiteId);
-            if (website) {
+if (website) {
                 get('websiteModalTitle').textContent = 'Edit Website';
-                get('websiteId').value = website.id;
+get('websiteId').value = website.id;
                 get('settingsWebsiteService').value = website.service;
                 get('settingsWebsiteUsername').value = website.username;
                 get('settingsWebsiteValue').value = website.value;
                 get('settingsWebsiteLink').value = website.link || '';
-            }
+}
         } else {
             get('websiteModalTitle').textContent = 'Add New Website';
-        }
+}
         openModal(get('websiteModal'));
     };
-
 // --- LINK MODAL ---
     const openLinkModal = (taskId) => {
         currentLinkTask = findTaskById(taskId);
@@ -761,6 +829,7 @@ if (!currentLinkTask) return;
                 <button class="settings-delete-btn" data-index="${index}">&times;</button>
             `;
             
+
 li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
                 const linkIndex = parseInt(e.currentTarget.dataset.index, 10);
                 currentLinkTask.links.splice(linkIndex, 1);
@@ -768,6 +837,7 @@ li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
                 openLinkModal(taskId); // Re-render the link list
                 openTaskModal(currentEditingTask.id); // Re-render the main task modal
  
+
            });
             existingLinksList.appendChild(li);
         });
@@ -776,101 +846,104 @@ openModal(linkModal);
 
     const openArchiveModal = () => {
         const archivedTasksList = get('archivedTasksList');
-        archivedTasksList.innerHTML = '';
+archivedTasksList.innerHTML = '';
         const archived = tasks.filter(t => t.isArchived);
 
         if (archived.length === 0) {
             archivedTasksList.innerHTML = `<div class="empty-state"><i class="fas fa-archive"></i> <p>No tasks have been archived.</p></div>`;
-        } else {
+} else {
             archived.forEach(task => {
                 const li = document.createElement('li');
                 li.dataset.id = task.id;
                 li.innerHTML = `
                     <div class="password-item-details">
-                        <strong>${task.name}</strong>
+        
+                <strong>${task.name}</strong>
                         <small>Archived on: ${formatDateForDisplay(task.archivedDate)}</small>
                     </div>
                     <div>
-                        <button class="btn btn-secondary btn-sm restore-btn"><i class="fas fa-undo"></i> Restore</button>
+                  
+      <button class="btn btn-secondary btn-sm restore-btn"><i class="fas fa-undo"></i> Restore</button>
                         <button class="btn btn-danger btn-sm delete-perm-btn"><i class="fas fa-trash-alt"></i> Delete Permanently</button>
                     </div>
                 `;
                 archivedTasksList.appendChild(li);
-            });
+   
+         });
         }
         openModal(get('archiveModal'));
     };
-
-    const renderDashboard = () => {
+const renderDashboard = () => {
         const activeTasks = tasks.filter(t => !t.isArchived);
-        const today = new Date();
+const today = new Date();
         
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
+const day = String(today.getDate()).padStart(2, '0');
         const todayLocalISO = `${year}-${month}-${day}`;
         
         today.setHours(0, 0, 0, 0);
         const nextWeek = new Date(today);
-        nextWeek.setDate(today.getDate() + 7);
+nextWeek.setDate(today.getDate() + 7);
 
         const openCount = activeTasks.filter(t => t.status === 'Open').length;
         const inProgressCount = activeTasks.filter(t => t.status === 'In Progress').length;
-        const closedCount = tasks.filter(t => t.status === 'Closed').length;
+const closedCount = tasks.filter(t => t.status === 'Closed').length;
         const overdueCount = activeTasks.filter(t => new Date(t.dueDate) < today && t.status !== 'Closed').length;
-        const dueTodayCount = activeTasks.filter(t => t.dueDate === todayLocalISO && t.status !== 'Closed').length;
-        const dueThisWeekCount = activeTasks.filter(t => {
+const dueTodayCount = activeTasks.filter(t => t.dueDate === todayLocalISO && t.status !== 'Closed').length;
+const dueThisWeekCount = activeTasks.filter(t => {
             const dueDate = new Date(t.dueDate);
             return dueDate > today && dueDate <= nextWeek && t.status !== 'Closed';
         }).length;
-        
-        get('stat-open').textContent = openCount;
+get('stat-open').textContent = openCount;
         get('stat-in-progress').textContent = inProgressCount;
         get('stat-overdue').textContent = overdueCount;
         get('stat-due-today').textContent = dueTodayCount;
         get('stat-due-this-week').textContent = dueThisWeekCount;
         get('stat-closed').textContent = closedCount;
-
-        const urgentTasks = activeTasks.filter(t => t.isUrgent && t.status !== 'Closed').sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
-        const upcomingTasks = activeTasks.filter(t => t.status !== 'Closed' && new Date(t.dueDate) >= today).sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate)).slice(0, 5);
-        
-        const urgentList = get('dashboard-urgent-tasks');
+const urgentTasks = activeTasks.filter(t => t.isUrgent && t.status !== 'Closed').sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+const upcomingTasks = activeTasks.filter(t => t.status !== 'Closed' && new Date(t.dueDate) >= today).sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate)).slice(0, 5);
+const urgentList = get('dashboard-urgent-tasks');
         urgentList.innerHTML = '';
         if (urgentTasks.length === 0) {
             urgentList.innerHTML = `<li class="empty-state" style="padding:1rem;"><p>No urgent tasks.</p></li>`;
-        } else {
+} else {
             urgentTasks.forEach(task => {
                 const li = document.createElement('li');
                 li.dataset.taskId = task.id;
                 li.innerHTML = `
                     <div>
-                        <div class="dashboard-task-item-title">${task.name}</div>
+         
+               <div class="dashboard-task-item-title">${task.name}</div>
                         <div class="dashboard-task-item-due">Due: ${formatDateForDisplay(task.dueDate)}</div>
                     </div>
                     <span class="task-card-category-tag" style="background-color: ${categories[task.category] || '#ccc'}">${task.category}</span>
-                `;
+             
+   `;
                 urgentList.appendChild(li);
             });
-        }
+}
 
         const upcomingList = get('dashboard-upcoming-tasks');
         upcomingList.innerHTML = '';
-        if (upcomingTasks.length === 0) {
+if (upcomingTasks.length === 0) {
             upcomingList.innerHTML = `<li class="empty-state" style="padding:1rem;"><p>No upcoming tasks.</p></li>`;
-        } else {
+} else {
             upcomingTasks.forEach(task => {
                 const li = document.createElement('li');
                 li.dataset.taskId = task.id;
                 li.innerHTML = `
                     <div>
-                        <div class="dashboard-task-item-title">${task.name}</div>
+         
+               <div class="dashboard-task-item-title">${task.name}</div>
                         <div class="dashboard-task-item-due">Due: ${formatDateForDisplay(task.dueDate)}</div>
                     </div>
                     <span class="task-card-category-tag" style="background-color: ${categories[task.category] || '#ccc'}">${task.category}</span>
-                `;
+             
+   `;
                 upcomingList.appendChild(li);
             });
-        }
+}
     };
 
     // --- VIEW SWITCHING ---
@@ -889,28 +962,25 @@ if(activeLink) {
 
         if (targetViewId === 'homeView') {
             renderDashboard();
-        }
+}
         
         const isTaskView = targetViewId === 'tasksView';
-        openNewTaskModalBtn.style.display = isTaskView ? 'flex' : 'none';
+openNewTaskModalBtn.style.display = isTaskView ? 'flex' : 'none';
         get('search-container').style.display = isTaskView ? 'flex' : 'none';
     };
-
-    // --- INITIALIZATION ---
+// --- INITIALIZATION ---
     const initialize = () => {
         // Theme initialization
         const themeToggle = get('themeToggle');
-        const savedTheme = localStorage.getItem('theme') || 'light';
+const savedTheme = localStorage.getItem('theme') || 'light';
         document.body.dataset.theme = savedTheme;
         themeToggle.checked = savedTheme === 'dark';
-
-        themeToggle.addEventListener('change', () => {
+themeToggle.addEventListener('change', () => {
             const newTheme = themeToggle.checked ? 'dark' : 'light';
             document.body.dataset.theme = newTheme;
             localStorage.setItem('theme', newTheme);
         });
-
-        loadData();
+loadData();
 addSampleData();
         switchView('homeView'); // Set default view
 
@@ -918,7 +988,7 @@ addSampleData();
         get('homeLink').addEventListener('click', (e) => { e.preventDefault(); switchView('homeView'); });
 get('tasksLink').addEventListener('click', (e) => { e.preventDefault(); switchView('tasksView'); });
         get('sitesLink').addEventListener('click', (e) => { e.preventDefault(); switchView('sitesView'); });
-        get('commercialLink').addEventListener('click', (e) => { e.preventDefault(); switchView('commercialView'); });
+get('commercialLink').addEventListener('click', (e) => { e.preventDefault(); switchView('commercialView'); });
         reportsLink.addEventListener('click', (e) => { e.preventDefault(); switchView('reportsView'); });
 taskStatusSelect.addEventListener('change', (e) => {
             if (e.target.value === 'In Progress') {
@@ -934,6 +1004,7 @@ taskForm.addEventListener('submit', (e) => {
             
             const oldStatus = currentEditingTask ? currentEditingTask.status : null;
             
+
 const newStatus = taskStatusSelect.value;
 
             let progress = null;
@@ -941,6 +1012,7 @@ const newStatus = taskStatusSelect.value;
                 const progressVal = parseInt(taskProgressInput.value, 10);
                 if (!isNaN(progressVal) && progressVal >= 0 && progressVal <= 100) {
                    
+
  progress = progressVal;
                 }
             }
@@ -950,12 +1022,14 @@ const newStatus = taskStatusSelect.value;
                 description: taskDescriptionInput.value,
                 dueDate: dueDateInput.value,
    
+
              assignee,
                 category,
                 status: newStatus,
                 isUrgent: taskUrgentInput.checked,
                 progress: progress,
                 closedDate: newStatus === 'Closed' 
+
 ? (currentEditingTask?.closedDate || new Date().toISOString()) : null
             };
 if (currentEditingTask) {
@@ -963,8 +1037,7 @@ if (currentEditingTask) {
 if (newStatus === 'Closed' && oldStatus !== 'Closed') {
                     logAction(currentEditingTask, `Task status changed to Closed.`, currentEditingTask.assignee);
 }
-                updateMainTaskDueDate(currentEditingTask);
-} else {
+            } else {
                 const newTask = { id: getNextId(), ...sanitizeTask({}), ...taskData };
 updateMainTaskDueDate(newTask);
                 tasks.push(newTask);
@@ -983,14 +1056,14 @@ queryAll('.settings-tab').forEach(tab => {
                 e.currentTarget.classList.add('active');
                 queryAll('.settings-tab-content').forEach(content => content.classList.remove('active'));
             
+
     get(`${targetTab}Tab`).classList.add('active');
             });
         });
 openPasswordModalBtn.addEventListener('click', () => {
             openPasswordModal();
         });
-
-        openWebsiteModalBtn.addEventListener('click', () => {
+openWebsiteModalBtn.addEventListener('click', () => {
             openWebsiteModal();
         });
 settingsPersonForm.addEventListener('submit', (e) => {
@@ -1001,6 +1074,7 @@ settingsPersonForm.addEventListener('submit', (e) => {
                 saveState();
                 openSettingsModal();
     
+
             settingsPersonNameInput.value = '';
             } else if (people[newName]) {
                 alert(`A person named "${newName}" already exists.`);
@@ -1014,6 +1088,7 @@ settingsCategoryForm.addEventListener('submit', (e) => {
                 saveState();
                 openSettingsModal();
     
+
             settingsCategoryNameInput.value = '';
             } else if (categories[newCat]) {
                 alert(`A category named "${newCat}" already exists.`);
@@ -1027,43 +1102,48 @@ settingsPasswordForm.addEventListener('submit', (e) => {
             const value = settingsPasswordValueInput.value.trim();
             const link = settingsPasswordLinkInput.value.trim();
           
+
   if (service && username && value) {
                 if (id) { // Editing existing
                     const password = passwords.find(p => p.id === id);
                     if (password) {
                       
+
   Object.assign(password, { service, username, value, link });
                     }
                 } else { // Adding new
                     passwords.push(sanitizePassword({ service, username, value, link }));
                 }
           
+
       saveState();
                 closeModal(passwordModal);
                 openSettingsModal();
             }
         });
-
-        get('settingsWebsiteForm').addEventListener('submit', (e) => {
+get('settingsWebsiteForm').addEventListener('submit', (e) => {
             e.preventDefault();
             const id = get('websiteId').value;
             const service = get('settingsWebsiteService').value.trim();
             const username = get('settingsWebsiteUsername').value.trim();
             const value = get('settingsWebsiteValue').value.trim();
             const link = get('settingsWebsiteLink').value.trim();
-            if (service && username && value) {
+          
+  if (service && username && value) {
                 if (id) { // Editing existing
                     const website = websites.find(w => w.id === id);
                     if (website) {
-                        Object.assign(website, { service, username, value, link });
+                      
+  Object.assign(website, { service, username, value, link });
                     }
                 } else { // Adding new
                     websites.push(sanitizeWebsite({ service, username, value, link }));
                 }
-                saveState();
+          
+      saveState();
                 closeModal(get('websiteModal'));
                 openSettingsModal();
-            }
+}
         });
 linkForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -1071,7 +1151,8 @@ linkForm.addEventListener('submit', (e) => {
             const name = linkNameInput.value.trim();
             const url = linkUrlInput.value.trim();
             if (name && url) {
-                if (!currentLinkTask.links) currentLinkTask.links = [];
+                
+if (!currentLinkTask.links) currentLinkTask.links = [];
      
            currentLinkTask.links.push({ name, url });
                 saveState();
@@ -1079,7 +1160,8 @@ linkForm.addEventListener('submit', (e) => {
                 openTaskModal(currentEditingTask.id);
                 linkForm.reset();
             }
-        });
+ 
+       });
 get('mainTaskLinksList').parentElement.querySelector('.add-link-btn-header').addEventListener('click', () => {
             openLinkModal(currentEditingTask.id);
         });
@@ -1088,15 +1170,15 @@ openNewTaskModalBtn.addEventListener('click', () => openTaskModal());
 archiveTaskBtn.addEventListener('click', () => { if (currentEditingTask && confirm('Archive this task?')) { const task = findTaskById(currentEditingTask.id); task.isArchived = true; task.archivedDate = new Date().toISOString(); saveState(); closeModal(taskModal); } });
 addNewCategoryBtn.addEventListener('click', () => openModal(categoryModal));
         addNewPersonBtn.addEventListener('click', () => { activeAssigneeSelect = taskAssigneeSelect; openModal(personModal); });
-        
-        // Reports View Listeners
+// Reports View Listeners
         get('openAssigneeReportConfigBtn').addEventListener('click', () => {
             const userSelection = get('reportUserSelectionContainer');
             const activeUsers = new Set();
             tasks.filter(t => !t.isArchived).forEach(task => getAllAssignees(task).forEach(assignee => activeUsers.add(assignee)));
             userSelection.innerHTML = `<div><label><input type="checkbox" id="reportSelectAllUsers"> <strong>Select All</strong></label></div>`;
             Array.from(activeUsers).sort().forEach(user => {
-                userSelection.innerHTML += `<div><label><input type="checkbox" class="report-user-checkbox" value="${user}"> ${user}</label></div>`;
+     
+           userSelection.innerHTML += `<div><label><input type="checkbox" class="report-user-checkbox" value="${user}"> ${user}</label></div>`;
             });
             get('reportSelectAllUsers').addEventListener('change', (e) => queryAll('.report-user-checkbox').forEach(cb => cb.checked = e.target.checked));
             openModal(get('reportConfigModal'));
@@ -1106,18 +1188,18 @@ get('generateAssigneeReportBtn').addEventListener('click', generateAssigneeRepor
 
 [assigneeFilter, categoryFilter, sortByDate, closedTasksFilter].forEach(el => el.addEventListener('change', renderKanbanBoard));
         globalSearchInput.addEventListener('input', renderKanbanBoard);
-        categoryForm.addEventListener('submit', e => { e.preventDefault(); const newCat = newCategoryNameInput.value.trim(); if (newCat && !categories[newCat]) { categories[newCat] = generateRandomColor(); saveState(); categorySelect.value = newCat; } categoryForm.reset(); closeModal(categoryModal); });
+categoryForm.addEventListener('submit', e => { e.preventDefault(); const newCat = newCategoryNameInput.value.trim(); if (newCat && !categories[newCat]) { categories[newCat] = generateRandomColor(); saveState(); categorySelect.value = newCat; } categoryForm.reset(); closeModal(categoryModal); });
 personForm.addEventListener('submit', e => { e.preventDefault(); const newName = newPersonNameInput.value.trim(); if (newName) { if (!people[newName]) { people[newName] = generateRandomColor(); saveState(); populateAllDropdowns(); } if (activeAssigneeSelect) { activeAssigneeSelect.value = newName; } } personForm.reset(); closeModal(personModal); });
 taskDescriptionInput.addEventListener('input', e => { e.target.style.height = 'auto'; e.target.style.height = (e.target.scrollHeight) + 'px'; });
 queryAll('.modal').forEach(modal => { modal.addEventListener('click', e => { if (e.target === modal) closeModal(modal); }); modal.querySelector('.close-button')?.addEventListener('click', () => closeModal(modal)); });
-        
-        // Data management event listeners
+// Data management event listeners
         get('exportDataBtn').addEventListener('click', () => {
             const data = { tasks, categories, people, passwords, websites };
             const json = JSON.stringify(data, null, 2);
             const blob = new Blob([json], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
+            
+const a = document.createElement('a');
             a.href = url;
             const date = new Date().toISOString().split('T')[0];
             a.download = `taskboard-backup-${date}.json`;
@@ -1125,42 +1207,46 @@ queryAll('.modal').forEach(modal => { modal.addEventListener('click', e => { if 
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showToast('Data exported successfully!');
+     
+       showToast('Data exported successfully!');
         });
-        
-        get('importDataBtn').addEventListener('click', () => get('importFileInput').click());
+get('importDataBtn').addEventListener('click', () => get('importFileInput').click());
         get('importFileInput').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
             if (!confirm('Are you sure you want to import data? This will overwrite all current data.')) {
                 e.target.value = ''; // Reset file input
-                return;
+               
+ return;
             }
             const reader = new FileReader();
             reader.onload = (event) => {
                 try {
                     const data = JSON.parse(event.target.result);
-                    // Basic validation
+               
+     // Basic validation
                     if (data && data.tasks && data.people && data.categories) {
                         tasks = (data.tasks || []).map(sanitizeTask);
                         people = data.people || {};
-                        categories = data.categories || {};
+         
+               categories = data.categories || {};
                         passwords = (data.passwords || []).map(sanitizePassword);
                         websites = (data.websites || []).map(sanitizeWebsite);
                         saveState();
-                        showToast('Data imported successfully!');
+showToast('Data imported successfully!');
                         closeModal(settingsModal);
                     } else {
                         alert('Invalid data file.');
-                    }
+}
                 } catch (err) {
                     alert('Failed to parse data file. Please ensure it is a valid JSON backup.');
-                    console.error("Import error:", err);
+console.error("Import error:", err);
                 } finally {
-                    e.target.value = ''; // Reset file input
+                    e.target.value = '';
+// Reset file input
                 }
             };
-            reader.readAsText(file);
+reader.readAsText(file);
         });
 
         get('viewArchivedBtn').addEventListener('click', openArchiveModal);
@@ -1172,38 +1258,42 @@ queryAll('.modal').forEach(modal => { modal.addEventListener('click', e => { if 
             if (!li) return;
             const taskId = li.dataset.id;
             
-            if (restoreBtn) {
+       
+     if (restoreBtn) {
                 const task = findTaskById(taskId);
                 if (task) {
                     task.isArchived = false;
                     task.archivedDate = null;
-                    li.classList.add('fading-out');
+            
+        li.classList.add('fading-out');
                     setTimeout(() => {
                         saveState();
                         openArchiveModal(); // Re-render the modal
-                    }, 300);
+                  
+  }, 300);
                 }
             }
 
             if (deleteBtn) {
                 if (confirm('Are you sure you want to permanently delete this task? This action cannot be undone.')) {
-                    tasks = tasks.filter(t => t.id !== taskId);
+                    tasks = tasks.filter(t 
+=> t.id !== taskId);
                     li.classList.add('fading-out');
                      setTimeout(() => {
                         saveState();
                         openArchiveModal(); // Re-render the modal
                     }, 300);
-                }
+}
             }
         });
-
-        ['dashboard-urgent-tasks', 'dashboard-upcoming-tasks'].forEach(id => {
+['dashboard-urgent-tasks', 'dashboard-upcoming-tasks'].forEach(id => {
             get(id).addEventListener('click', (e) => {
                 const li = e.target.closest('li');
                 if (li && li.dataset.taskId) {
                     openTaskModal(li.dataset.taskId);
                 }
-            });
+       
+     });
         });
 
         renderAndPopulate();
