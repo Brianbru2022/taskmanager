@@ -950,6 +950,8 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
 
         if (targetViewId === 'homeView') {
             renderDashboard();
+        } else if (targetViewId === 'tasksView') {
+            renderAndPopulate();
         }
         
         const isTaskView = targetViewId === 'tasksView';
@@ -1265,24 +1267,6 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                     openTaskModal(li.dataset.taskId);
                 }
             });
-        });
-
-        kanbanViewBtn.addEventListener('click', () => {
-            currentView = 'kanban';
-            kanbanBoard.style.display = 'flex';
-            listViewContainer.style.display = 'none';
-            kanbanViewBtn.classList.add('active');
-            listViewBtn.classList.remove('active');
-            renderKanbanBoard();
-        });
-
-        listViewBtn.addEventListener('click', () => {
-            currentView = 'list';
-            kanbanBoard.style.display = 'none';
-            listViewContainer.style.display = 'block';
-            kanbanViewBtn.classList.remove('active');
-            listViewBtn.classList.add('active');
-            renderListView();
         });
 
         renderAndPopulate();
