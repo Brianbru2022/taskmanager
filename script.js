@@ -489,41 +489,38 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         setTimeout(() => taskDescriptionInput.dispatchEvent(new Event('input')), 50);
         openModal(taskModal);
     };
+    
     const updateMainTaskDueDate = (task) => {
-        if (task.isUrgent || !task.subtasks || task.subtasks.length === 0) {
-            return;
+        if (task.isUrgent) {
+            return; // Do not auto-update urgent tasks
         }
 
         let allSubtasks = [];
         (function collectSubtasks(subtasks) {
             for (const sub of subtasks) {
-                allSubtasks.push(sub);
+                if (sub.status !== 'Closed') {
+                    allSubtasks.push(sub);
+                }
                 if (sub.subtasks && sub.subtasks.length > 0) {
                     collectSubtasks(sub.subtasks);
                 }
-       
             }
         })(task.subtasks);
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const overdueSubtask = allSubtasks.find(st =>
-            new Date(st.dueDate) < today && !['Closed'].includes(st.status)
-        );
-        if (overdueSubtask) {
-            const newDueDate = addWeekdays(new Date(), 5);
-            task.dueDate = newDueDate.toISOString().split('T')[0];
-            return;
+        if (allSubtasks.length === 0) {
+            return; // No open subtasks to base the date on
         }
 
-        const incompleteSubtasks = allSubtasks.filter(st => !['Closed'].includes(st.status));
-        if (incompleteSubtasks.length > 0) {
-            const latestDueDate = new Date(Math.max(...incompleteSubtasks.map(st => new Date(st.dueDate))));
-            latestDueDate.setDate(latestDueDate.getDate() + 5);
-            task.dueDate = latestDueDate.toISOString().split('T')[0];
+        const latestSubtaskDueDate = new Date(Math.max(...allSubtasks.map(st => new Date(st.dueDate))));
+        const currentMainDueDate = new Date(task.dueDate);
+
+        if (latestSubtaskDueDate > currentMainDueDate) {
+            const newMainDueDate = new Date(latestSubtaskDueDate);
+            newMainDueDate.setDate(newMainDueDate.getDate() + 7);
+            task.dueDate = newMainDueDate.toISOString().split('T')[0];
         }
     };
+
     const populateAllDropdowns = () => {
         const sortedPeople = Object.keys(people).sort(), sortedCategories = Object.keys(categories).sort();
         const peopleOptions = sortedPeople.map(p => `<option value="${p}">${p}</option>`).join('');
