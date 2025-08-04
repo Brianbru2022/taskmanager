@@ -275,21 +275,59 @@ body[data-theme="dark"] .kanban-column.this-week-tasks { background-color: #1e3a
 }
 body[data-theme="dark"] .kanban-column.this-week-tasks .column-header { color: #8cbef3; }
 
-.task-card-title { font-weight: 600; margin-bottom: 0.5rem; margin-top: 0; display: flex; justify-content: space-between;
-align-items: center; gap: 0.5rem; }
-.task-card-title span { flex-grow: 1; padding-right: 20px;
-/* Space for urgent icon */ }
-.task-card-title .subtask-indicator {
-    color: var(--color-accent-primary);
-    font-weight: 700;
-    font-size: 0.8em;
+.task-card-title { 
+    font-weight: 600; 
+    margin-bottom: 0.5rem; 
+    margin-top: 0; 
+    display: flex; 
+    justify-content: space-between;
+    align-items: flex-start; /* Align to top to handle multi-line titles gracefully */
+    gap: 0.5rem; 
 }
-.task-card-title .parent-task-indicator {
+
+.title-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-title-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap; /* Allow wrapping if title is long */
+}
+
+.subtask-indicator-label {
+    background-color: var(--color-accent-secondary);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7em;
+    font-weight: 700;
+    text-transform: uppercase;
+    line-height: 1;
+    flex-shrink: 0; /* Prevent the label from shrinking */
+}
+
+.task-name-text {
+    font-weight: 600; /* Keep title font weight */
+}
+
+.parent-task-indicator {
     color: var(--color-text-secondary);
     font-weight: 400;
-    font-size: 0.8em;
+    font-size: 0.85em;
+    margin-top: 2px;
+    padding-left: 0.25rem; /* Align slightly with title above */
 }
-.title-assignee-stack { display: flex; flex-shrink: 0; }
+
+.title-assignee-stack { 
+    display: flex; 
+    flex-shrink: 0; 
+    padding-top: 2px; /* Align with the top of the title text */
+}
+
 .task-card-description { font-size: 0.9rem; color: var(--color-text-secondary); margin-bottom: 0.8rem;
 }
 .card-assignee-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 0.75rem; font-weight: 600;
