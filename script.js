@@ -5,7 +5,6 @@
     const SUBTASK_COLORS = ['subtask-color-1', 'subtask-color-2', 'subtask-color-3', 'subtask-color-4', 'subtask-color-5'];
     let currentEditingTask = null;
     let currentLinkTask = null;
-    let currentView = 'kanban'; // 'kanban' or 'list'
 
     // --- UTILITY & HELPER FUNCTIONS ---
     const saveState = () => { localStorage.setItem('tasks', JSON.stringify(tasks)); localStorage.setItem('categories', JSON.stringify(categories)); localStorage.setItem('people', JSON.stringify(people)); localStorage.setItem('passwords',
@@ -16,14 +15,7 @@ JSON.stringify(passwords)); localStorage.setItem('websites', JSON.stringify(webs
     const formatDate = (isoDate) => isoDate ? new Date(isoDate).toLocaleString('en-GB') : 'N/A';
     const formatDateForDisplay = (isoDate) => isoDate ?
 new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A';
-    const renderAndPopulate = () => { 
-        if (currentView === 'kanban') {
-            renderKanbanBoard(); 
-        } else {
-            renderListView();
-        }
-        populateAllDropdowns(); 
-    };
+    const renderAndPopulate = () => { renderKanbanBoard(); populateAllDropdowns(); };
     const addWeekdays = (date, days) => {
         let newDate = new Date(date);
         let addedDays = 0;
@@ -48,12 +40,12 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
     // --- DOM ELEMENT SELECTION ---
     const get = (id) => document.getElementById(id);
     const queryAll = (selector) => document.querySelectorAll(selector);
-    const kanbanBoard = get('kanbanBoard'), listViewContainer = get('listViewContainer'), kanbanViewBtn = get('kanbanViewBtn'), listViewBtn = get('listViewBtn'), openNewTaskModalBtn = get('openNewTaskModalBtn'), assigneeFilter = get('assigneeFilter'), categoryFilter = get('categoryFilter'), sortByDate = get('sortByDate'), closedTasksFilter = get('closedTasksFilter'), taskModal = get('taskModal'), taskForm = get('taskForm'), modalTitle = get('modalTitle'), manageTaskHeader = get('manageTaskHeader'), taskNameInput = get('taskName'), taskDescriptionInput = get('taskDescription'), dueDateInput = get('dueDate'), taskUrgentInput = get('taskUrgent'), taskAssigneeSelect = get('taskAssignee'), categorySelect = get('categorySelect'), taskStatusSelect = get('taskStatus'), taskProgressInput = get('taskProgress'), progressContainer = get('progress-container'), deleteTaskBtn = get('deleteTaskBtn'), archiveTaskBtn = get('archiveTaskBtn'), addNewCategoryBtn = get('addNewCategoryBtn'), categoryModal = get('categoryModal'), categoryForm = get('categoryForm'), newCategoryNameInput = get('newCategoryName'), addNewPersonBtn = get('addNewPersonBtn'), personModal = get('personModal'), personForm = get('personForm'), newPersonNameInput = get('newPersonName'), subTaskSection = get('subTaskSection'), subtasksListContainer = get('subtasksListContainer'),
+    const kanbanBoard = get('kanbanBoard'), openNewTaskModalBtn = get('openNewTaskModalBtn'), assigneeFilter = get('assigneeFilter'), categoryFilter = get('categoryFilter'), sortByDate = get('sortByDate'), closedTasksFilter = get('closedTasksFilter'), taskModal = get('taskModal'), taskForm = get('taskForm'), modalTitle = get('modalTitle'), manageTaskHeader = get('manageTaskHeader'), taskNameInput = get('taskName'), taskDescriptionInput = get('taskDescription'), dueDateInput = get('dueDate'), taskUrgentInput = get('taskUrgent'), taskAssigneeSelect = get('taskAssignee'), categorySelect = get('categorySelect'), taskStatusSelect = get('taskStatus'), taskProgressInput = get('taskProgress'), progressContainer = get('progress-container'), deleteTaskBtn = get('deleteTaskBtn'), archiveTaskBtn = get('archiveTaskBtn'), addNewCategoryBtn = get('addNewCategoryBtn'), categoryModal = get('categoryModal'), categoryForm = get('categoryForm'), newCategoryNameInput = get('newCategoryName'), addNewPersonBtn = get('addNewPersonBtn'), personModal = get('personModal'), personForm = get('personForm'), newPersonNameInput = get('newPersonName'), subTaskSection = get('subTaskSection'), subtasksListContainer = get('subtasksListContainer'),
     addSubTaskFormContainer = get('addSubTaskFormContainer'), mainLogControls = get('mainLogControls'), logSummarySection = get('logSummarySection'), logSummaryContainer = get('logSummaryContainer'), reportsLink = get('reportsLink'), settingsBtn = get('settingsBtn'), settingsModal = get('settingsModal'), peopleList = get('peopleList'), categoryList = get('categoryList'), settingsPersonForm = get('settingsPersonForm'), settingsCategoryForm = get('settingsCategoryForm'), settingsPersonNameInput = get('settingsPersonName'), settingsCategoryNameInput = get('settingsCategoryName'), passwordList = get('passwordList'), settingsPasswordForm = get('settingsPasswordForm'), settingsPasswordServiceInput = get('settingsPasswordService'), settingsPasswordUsernameInput = get('settingsPasswordUsername'), settingsPasswordValueInput = get('settingsPasswordValue'), openPasswordModalBtn = get('openPasswordModalBtn'), passwordModal = get('passwordModal'), passwordModalTitle = get('passwordModalTitle'), passwordIdInput = get('passwordId'), settingsPasswordLinkInput = get('settingsPasswordLink'), linkModal = get('linkModal'), linkForm = get('linkForm'), linkNameInput = get('linkName'), linkUrlInput
     = get('linkUrl'), existingLinksList = get('existingLinksList'), websiteList = get('websiteList'), openWebsiteModalBtn = get('openWebsiteModalBtn'), websiteModal = get('websiteModal'), globalSearchInput = get('globalSearchInput');
 
     // --- DATA SANITIZATION & INITIAL LOAD ---
-    const sanitizeTask = (task) => { const defaults = { name: 'Untitled', description: '', dueDate: new Date().toISOString().split('T')[0], assignee: null, category: 'Uncategorized', status: 'Open', subtasks: [], log: [], isArchived: false, isUrgent: false, closedDate: null, progress: null, links: [], archivedDate: null, isCollapsed: false };
+    const sanitizeTask = (task) => { const defaults = { name: 'Untitled', description: '', dueDate: new Date().toISOString().split('T')[0], assignee: null, category: 'Uncategorized', status: 'Open', subtasks: [], log: [], isArchived: false, isUrgent: false, closedDate: null, progress: null, links: [], archivedDate: null };
     const sanitized = { ...defaults, ...task }; sanitized.subtasks = (sanitized.subtasks || []).map(sub => ({...defaults, ...sub})); return sanitized; };
     const sanitizePassword = (p) => ({ id: getNextId('PWD'), service: 'Untitled', username: '', value: '', link: '', ...p });
     const sanitizeWebsite = (w) => ({ id: getNextId('WEB'), service: 'Untitled', username: '', value: '', link: '', ...w });
@@ -242,20 +234,9 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             </div>
         `;
 
-        let titleHTML;
-        if (task.parentTaskName) {
-            titleHTML = `
-                <div class="title-content">
-                    <div class="main-title-line">
-                        <span class="subtask-indicator-label">Sub-task</span>
-                        <span class="task-name-text">${task.name}</span>
-                    </div>
-                    <small class="parent-task-indicator">of ${task.parentTaskName}</small>
-                </div>
-            `;
-        } else {
-            titleHTML = `<div class="title-content"><span class="task-name-text">${task.name}</span></div>`;
-        }
+        const titleHTML = task.parentTaskName
+            ? `<span class="subtask-indicator">[SUB]</span> ${task.name} <small class="parent-task-indicator">of ${task.parentTaskName}</small>`
+            : `<span>${task.name}</span>`;
 
         card.innerHTML = `
             ${quickCloseBtnHTML}
@@ -274,7 +255,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         `;
         card.addEventListener('click', (e) => {
             if (e.target.closest('.task-card-quick-close')) return;
-            const rootParentId = task.parentId ? findRootTask(task.id)?.id || task.id : task.id;
+            const rootParentId = task.parentId || task.id;
             openTaskModal(rootParentId)
         });
         if (isDraggable) {
@@ -296,97 +277,6 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             });
         }
         return card;
-    };
-
-    const renderListView = () => {
-        const activeTasks = tasks.filter(t => !t.isArchived);
-        // Apply filters similar to kanban board
-        let filteredTasks = activeTasks;
-        if (assigneeFilter.value !== 'all') {
-            filteredTasks = filteredTasks.filter(t => getAllAssignees(t).has(assigneeFilter.value));
-        }
-        if (categoryFilter.value !== 'all') {
-            filteredTasks = filteredTasks.filter(t => t.category === categoryFilter.value);
-        }
-        // Note: Sorting and closed task filters are handled differently or might be simplified for list view.
-        // For now, let's just sort by due date.
-        filteredTasks.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
-
-        listViewContainer.innerHTML = '';
-        if (filteredTasks.length === 0) {
-            listViewContainer.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i> <p>No tasks match the current filters.</p></div>`;
-            return;
-        }
-        
-        const listFragment = document.createDocumentFragment();
-        filteredTasks.forEach(task => {
-            listFragment.appendChild(createListItem(task));
-        });
-        listViewContainer.appendChild(listFragment);
-    };
-
-    const createListItem = (task, level = 0) => {
-        const item = document.createElement('div');
-        item.className = 'list-view-item';
-        item.style.paddingLeft = `${level * 20}px`;
-
-        const hasSubtasks = task.subtasks && task.subtasks.length > 0;
-        const isCollapsed = task.isCollapsed;
-
-        const header = document.createElement('div');
-        header.className = 'list-view-item-header';
-        header.innerHTML = `
-            <span class="list-view-item-toggle ${isCollapsed ? 'collapsed' : ''}" style="visibility: ${hasSubtasks ? 'visible' : 'hidden'}">
-                <i class="fas fa-chevron-down"></i>
-            </span>
-            <span class="list-view-item-name">${task.name}</span>
-            <div class="list-view-item-details">
-                <span class="task-card-category-tag" style="background-color: ${categories[task.category] || '#ccc'}">${task.category}</span>
-                <span><i class="far fa-calendar-alt"></i> ${formatDateForDisplay(task.dueDate)}</span>
-                <div class="card-assignee-icon" style="background-color: ${people[task.assignee] || '#ccc'}" title="${task.assignee}">${getInitials(task.assignee)}</div>
-            </div>
-            <div class="list-view-item-actions">
-                <button class="edit-task-btn" title="Edit Task"><i class="fas fa-edit"></i></button>
-                <button class="add-subtask-btn-list" title="Add Sub-task"><i class="fas fa-plus"></i></button>
-            </div>
-        `;
-
-        const childrenContainer = document.createElement('div');
-        childrenContainer.className = `list-view-children ${isCollapsed ? 'collapsed' : ''}`;
-
-        if (hasSubtasks) {
-            task.subtasks.forEach(subtask => {
-                childrenContainer.appendChild(createListItem(subtask, level + 1));
-            });
-        }
-
-        item.appendChild(header);
-        item.appendChild(childrenContainer);
-
-        // Event Listeners
-        const toggle = header.querySelector('.list-view-item-toggle');
-        toggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            task.isCollapsed = !task.isCollapsed;
-            toggle.classList.toggle('collapsed');
-            childrenContainer.classList.toggle('collapsed');
-            // No need to call saveState() for a purely visual toggle, unless we want to persist it.
-            // Let's persist it.
-            localStorage.setItem('tasks', JSON.stringify(tasks)); // Save collapse state
-        });
-
-        header.querySelector('.edit-task-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            const rootTask = findRootTask(task.id);
-            openTaskModal(rootTask.id);
-        });
-
-        header.querySelector('.add-subtask-btn-list').addEventListener('click', (e) => {
-            e.stopPropagation();
-            openTaskModal(task.id);
-        });
-
-        return item;
     };
     
     const renderSubTask = (taskObject, level = 0) => {
@@ -521,30 +411,6 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
 
     const findTaskById = (id, taskArray = tasks) => { for (const task of taskArray) { if (task.id === id) return task;
     if (task.subtasks) { const found = findTaskById(id, task.subtasks); if (found) return found; } } return null; };
-    const findRootTask = (taskId) => {
-        // Helper to find the immediate parent of a task
-        function findParent(childId, taskArray) {
-            for (const task of taskArray) {
-                if (task.subtasks && task.subtasks.find(st => st.id === childId)) {
-                    return task;
-                }
-                if (task.subtasks && task.subtasks.length > 0) {
-                    const foundParent = findParent(childId, task.subtasks);
-                    if (foundParent) return foundParent;
-                }
-            }
-            return null;
-        }
-
-        let currentId = taskId;
-        let parent = findParent(currentId, tasks);
-        while (parent) {
-            currentId = parent.id;
-            parent = findParent(currentId, tasks);
-        }
-        // Now currentId is the ID of the root task
-        return findTaskById(currentId);
-    };
     const getAllAssignees = (task) => { const assignees = new Set(); if (task.assignee) assignees.add(task.assignee);
     (function traverse(subtasks) { (subtasks || []).forEach(st => { if (st.assignee) assignees.add(st.assignee); traverse(st.subtasks); }); })(task.subtasks); return assignees; };
     const handleAddSubTask = (form, parentTask) => {
