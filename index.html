@@ -3,339 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional Task Board</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Construction Progress Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="sites.css">
-    <link rel="stylesheet" href="commercial.css">
 </head>
-<body>
-    <div class="page-wrapper">
-        <aside class="sidebar">
-            <div class="sidebar-header"><div class="sidebar-menu-icon"><i class="fas fa-bars"></i></div></div>
-            <nav class="sidebar-nav">
-                <ul>
-                 <li class="active"><a href="#" id="homeLink"><i class="fas fa-home"></i> <span>Home</span></a></li>
-                    <li><a href="#" id="tasksLink"><i class="fas fa-tasks"></i> <span>Tasks</span></a></li>
-                    <li><a href="#" id="sitesLink"><i class="fas fa-hard-hat"></i> <span>Sites</span></a></li>
-                    <li><a href="#" id="commercialLink"><i class="fas fa-building"></i> <span>Commercial</span></a></li>
-                    <li><a href="#" id="reportsLink"><i class="fas fa-chart-bar"></i> <span>Reports</span></a></li>
-              </ul>
-            </nav>
-            <div class="sidebar-footer"><a href="#" id="settingsBtn"><i class="fas fa-cog"></i></a></div>
+<body class="bg-gray-100 antialiased text-gray-800">
+
+    <!-- Main Application Container -->
+    <div id="app-container" class="flex h-screen overflow-hidden">
+
+        <!-- Left Sidebar -->
+        <aside class="w-20 bg-white shadow-lg p-4 flex flex-col justify-between">
+            <div class="space-y-4">
+                <div class="flex items-center justify-center">
+                     <!-- A more abstract logo -->
+                    <svg class="h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                    </svg>
+                </div>
+                <!-- Sidebar buttons would go here -->
+            </div>
+            <div>
+                <!-- Settings button would go here -->
+            </div>
         </aside>
 
-        <div class="main-content">
-            <header class="top-bar">
-                <div class="header-content">
-          <h1 id="main-app-heading" class="main-app-heading">Task Management</h1>
-                    <div class="header-actions">
-                        <div id="search-container" class="search-container">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="globalSearchInput" placeholder="Search tasks...">
-                        </div>
-                        <button class="top-bar-add-btn" id="openNewTaskModalBtn"> <i class="fas fa-plus"></i> Add Task</button>
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-x-hidden p-6 md:p-8">
+            <header class="flex-none mb-6 md:mb-8">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <h1 id="main-header" class="text-2xl md:text-3xl font-bold text-gray-900">Select a Site</h1>
+                    <div class="flex items-center gap-4">
+                        <label for="site-select-header" class="text-base md:text-lg font-medium text-gray-700">Site:</label>
+                        <select id="site-select-header" class="p-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-auto">
+                            <option value="">No sites available</option>
+                        </select>
                     </div>
                 </div>
             </header>
-            
-            <div id="homeView" class="view-container">
-                <h2>Dashboard</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-card-icon open"><i class="fas fa-box"></i></div>
-                        <div class="stat-card-info">
-                            <span class="stat-card-title">Open</span>
-                            <span id="stat-open" class="stat-card-value">0</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-icon in-progress"><i class="fas fa-tasks"></i></div>
-                        <div class="stat-card-info">
-                            <span class="stat-card-title">In Progress</span>
-                            <span id="stat-in-progress" class="stat-card-value">0</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-icon overdue"><i class="fas fa-exclamation-triangle"></i></div>
-                        <div class="stat-card-info">
-                            <span class="stat-card-title">Overdue</span>
-                            <span id="stat-overdue" class="stat-card-value">0</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-icon due-today"><i class="fas fa-calendar-day"></i></div>
-                        <div class="stat-card-info">
-                            <span class="stat-card-title">Due Today</span>
-                            <span id="stat-due-today" class="stat-card-value">0</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-icon due-week"><i class="fas fa-calendar-week"></i></div>
-                        <div class="stat-card-info">
-                            <span class="stat-card-title">Due This Week</span>
-                            <span id="stat-due-this-week" class="stat-card-value">0</span>
-                        </div>
-                    </div>
-                     <div class="stat-card">
-                        <div class="stat-card-icon closed"><i class="fas fa-check-circle"></i></div>
-                        <div class="stat-card-info">
-                            <span class="stat-card-title">Closed</span>
-                            <span id="stat-closed" class="stat-card-value">0</span>
-                        </div>
+
+            <div class="flex-1 bg-white rounded-xl shadow-md overflow-hidden flex flex-col">
+                <!-- Timeline Header -->
+                <div class="flex-none flex items-center text-sm font-medium border-b border-gray-200 sticky top-0 bg-white z-20">
+                    <div class="flex-none w-64 pr-4 pl-6 py-3 border-r border-gray-200 font-semibold text-gray-600">Task Hierarchy</div>
+                    <div id="timeline-dates" class="flex-grow flex text-gray-500 timeline-container">
+                        <!-- Dates populated by JS -->
                     </div>
                 </div>
-                <div class="dashboard-columns">
-                    <div class="dashboard-section">
-                        <h3><i class="fas fa-exclamation-circle urgent-icon-header"></i> Urgent Tasks</h3>
-                        <ul id="dashboard-urgent-tasks" class="dashboard-task-list"></ul>
-                    </div>
-                    <div class="dashboard-section">
-                        <h3><i class="far fa-calendar-alt"></i> Upcoming Tasks</h3>
-                        <ul id="dashboard-upcoming-tasks" class="dashboard-task-list"></ul>
-                    </div>
+
+                <!-- Timeline Content -->
+                <div id="timeline-content-wrapper" class="flex-1 overflow-y-auto">
+                   <div id="timeline-content" class="min-w-max">
+                        <!-- Hierarchy and tasks injected by JS -->
+                   </div>
+                   <div id="empty-state-message" class="p-8 text-center text-gray-500 flex-col items-center justify-center hidden">
+                        <!-- Empty state populated by JS -->
+                   </div>
                 </div>
             </div>
-
-            <div id="tasksView" class="view-container" style="display: none;">
-                <div class="kanban-filters">
-                    <div class="filter-group"><label for="assigneeFilter">Filter by Assignee</label><select id="assigneeFilter"><option value="all">All Assignees</option></select></div>
-                    <div class="filter-group"><label for="categoryFilter">Filter by Category</label><select
-id="categoryFilter"><option value="all">All Categories</option></select></div>
-                    <div class="filter-group"><label for="sortByDate">Sort by Due Date</label><select id="sortByDate"><option value="newest">Newest First</option><option value="oldest" selected>Oldest First</option></select></div>
-                    <div class="filter-group"><label for="closedTasksFilter">Closed Tasks</label><select id="closedTasksFilter"><option value="recent">Show Recent (7 days)</option><option value="all">Show All</option></select></div>
-                </div>
-                <main class="kanban-board" id="kanbanBoard"></main>
-         </div>
-
-            <div id="sitesView" class="view-container" style="display: none;">
-                <h2>Sites</h2>
-                <p>This is the sites screen placeholder. Site management features will be available here in the future.</p>
-            </div>
-
-            <div id="commercialView" class="view-container" style="display: none;">
-                <h2>Commercial</h2>
-                <p>This is the commercial screen placeholder. Commercial features will be available here in the future.</p>
-            </div>
-
-            <div id="reportsView" class="view-container" style="display: none;">
-                <h2>Reports Dashboard</h2>
-                <div class="reports-grid">
-                    <div class="report-card">
-                        <div class="report-card-icon"><i class="fas fa-user-check"></i></div>
-                        <h3 class="report-card-title">Report by Assignee</h3>
-                        <p class="report-card-description">Generate a detailed list of all active tasks, grouped by the selected users.</p>
-                        <div class="report-card-footer">
-                            <button id="openAssigneeReportConfigBtn" class="btn btn-primary">Generate Report</button>
-                        </div>
-                    </div>
-                    <div class="report-card">
-                        <div class="report-card-icon"><i class="fas fa-clock-rotate-left"></i></div>
-                        <h3 class="report-card-title">Overdue Tasks Report</h3>
-                        <p class="report-card-description">Create a report listing all tasks that are currently past their due date and are not closed.</p>
-                        <div class="report-card-footer">
-                            <button id="generateOverdueReportBtn" class="btn btn-warning">Generate Report</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </main>
     </div>
 
-    <div id="taskModal" class="modal">
-        <div class="modal-content modal-lg"><header class="modal-header"><h2 id="modalTitle">New Task</h2><button class="close-button">&times;</button></header><form id="taskForm" novalidate><div class="form-body"><div id="manageTaskHeader" style="display: none;"></div><div class="main-task-details"><div class="form-left"><label for="taskName">Task Title</label><input type="text" id="taskName" placeholder="e.g., Design new homepage" required><label for="taskDescription">Description</label><textarea id="taskDescription" rows="8" placeholder="Add a more detailed description..."></textarea><div class="links-section"><h4>Links <button type="button" class="add-link-btn-header" title="Add Link"><i class="fas fa-link"></i></button></h4><ul class="links-list" id="mainTaskLinksList"></ul></div></div><div class="form-right"><label for="taskStatus">Status</label><select id="taskStatus" required><option value="Open">Open</option><option value="In Progress">In Progress</option><option value="Closed">Closed</option></select><div id="progress-container" style="display:
-none;"><label for="taskProgress">% Complete (Optional)</label><input type="number" id="taskProgress" min="0" max="100" placeholder="e.g., 75"></div><label for="taskAssignee">Assignee</label><div class="input-with-button"><select id="taskAssignee" required><option value="" disabled selected>Select...</option></select><button type="button" id="addNewPersonBtn" class="add-icon-btn" title="Add New Person"><i class="fas fa-user-plus"></i></button></div><label for="categorySelect">Category</label><div class="input-with-button"><select id="categorySelect" required><option value="" disabled selected>Select...</option></select><button type="button" id="addNewCategoryBtn" class="add-icon-btn" title="Add New Category"><i class="fas fa-plus"></i></button></div><label for="dueDate">Due Date</label><input type="date" id="dueDate" required><div class="form-group-checkbox"><input type="checkbox" id="taskUrgent"><label for="taskUrgent">Mark as Urgent</label></div></div></div><div id="mainLogControls" class="log-controls" style="display: none;"></div><div id="subTaskSection" style="display: none;"><hr class="section-divider"><h3>Sub-Tasks</h3><div id="subtasksListContainer"></div><div id="addSubTaskFormContainer"></div></div><div id="logSummarySection" style="display: none;"><hr class="section-divider"><h3>Action Log Summary</h3><div class="aggregated-log-container" id="logSummaryContainer"></div></div></div><footer class="modal-footer"><button type="button" id="archiveTaskBtn" class="btn btn-warning" style="display: none;"><i class="fas fa-archive"></i> Archive</button><button type="button" id="deleteTaskBtn" class="btn btn-danger" style="display: none;"><i class="fas fa-trash-alt"></i> Delete</button><div style="flex-grow: 1;"></div><button type="submit" id="saveTaskBtn" class="btn btn-primary"><i class="fas fa-save"></i> Save Task</button></footer></form></div>
- </div>
-    <div id="personModal" class="modal"><div class="modal-content modal-sm"><header class="modal-header"><h2>Add New Person</h2><button class="close-button">&times;</button></header><form id="personForm"><div class="form-body"><label for="newPersonName">Person's Full Name</label><input type="text" id="newPersonName" placeholder="e.g., Jane Doe" required></div><footer class="modal-footer"><button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Person</button></footer></form></div></div>
-    <div id="categoryModal" class="modal"><div class="modal-content modal-sm"><header class="modal-header"><h2>Add New Category</h2><button class="close-button">&times;</button></header><form id="categoryForm"><div class="form-body"><label for="newCategoryName">Category Name</label><input type="text" id="newCategoryName" placeholder="e.g., Frontend" required></div><footer class="modal-footer"><button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Category</button></footer></form></div></div>
-    
-    <div id="reportConfigModal" class="modal">
-        <div class="modal-content modal-md">
-            <header class="modal-header">
-                <h2>Configure Report</h2>
-                <button class="close-button">&times;</button>
-            </header>
-            <div class="form-body">
-                <h4>Report by Assignee</h4>
-                <p>Select the users to include in the report.</p>
-                <div id="reportUserSelectionContainer" class="report-user-selection"></div>
+    <!-- Modals -->
+    <div id="add-task-modal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="text-2xl font-bold">Add New Item</h2>
+                <button id="cancel-add-task-btn" class="modal-close-btn">&times;</button>
             </div>
-            <footer class="modal-footer">
-                <button type="button" id="generateAssigneeReportBtn" class="btn btn-primary" style="margin-left: auto;"><i class="fas fa-print"></i> Generate & Print</button>
-            </footer>
-        </div>
-    </div>
-
-    <div id="settingsModal" class="modal">
-        <div class="modal-content modal-xl">
-            <header class="modal-header">
-                <h2>Global Settings</h2>
-                <button class="close-button">&times;</button>
-     </header>
-            <div class="settings-container">
-                <div class="settings-tabs">
-                    <button class="settings-tab active" data-tab="general"><i class="fas fa-sliders-h"></i> General</button>
-                    <button class="settings-tab" data-tab="people"><i class="fas fa-users"></i> People</button>
-                    <button class="settings-tab" data-tab="categories"><i class="fas fa-tags"></i> Categories</button>
-      <button class="settings-tab" data-tab="passwords"><i class="fas fa-key"></i> Passwords</button>
-                    <button class="settings-tab" data-tab="websites"><i class="fas fa-globe"></i> Popular Websites</button>
-                    <button class="settings-tab" data-tab="about"><i class="fas fa-info-circle"></i> About</button>
+            <form id="add-task-form" class="space-y-4 p-6">
+                <div>
+                    <label for="item-type-select" class="block text-sm font-medium text-gray-700">Item Type</label>
+                    <select id="item-type-select" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <option value="task">Task</option>
+                        <option value="subtask">Sub-task</option>
+                    </select>
                 </div>
-                <div class="settings-content">
-                    <div id="generalTab" class="settings-tab-content active">
-                        <h3>General Settings</h3>
-                        <div class="settings-section">
-                            <h4>Appearance</h4>
-                            <div class="theme-switcher">
-                                <label for="themeToggle">Dark Mode</label>
-                                <label class="switch">
-                                    <input type="checkbox" id="themeToggle">
-                                    <span class="slider round"></span>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="settings-section">
-                            <h4>Data Management</h4>
-                            <div class="data-actions">
-                                <button id="exportDataBtn" class="btn btn-secondary"><i class="fas fa-download"></i> Export Data</button>
-                                <button id="importDataBtn" class="btn btn-secondary"><i class="fas fa-upload"></i> Import Data</button>
-                                <input type="file" id="importFileInput" accept=".json" style="display: none;">
-                            </div>
-                        </div>
-                         <div class="settings-section">
-                            <h4>Archived Tasks</h4>
-                            <div class="data-actions">
-                                <button id="viewArchivedBtn" class="btn btn-secondary"><i class="fas fa-archive"></i> View Archived Tasks</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="peopleTab" class="settings-tab-content">
-                 <form id="settingsPersonForm" class="settings-form">
-                            <input type="text" id="settingsPersonName" placeholder="New person's name..." required>
-                            <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Person</button>
+                <div id="parent-task-wrapper" class="hidden">
+                    <label for="parent-task-select" class="block text-sm font-medium text-gray-700">Parent Task</label>
+                    <select id="parent-task-select" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        <!-- Parent tasks populated by JS -->
+                    </select>
+                </div>
+                <div>
+                    <label for="task-name" class="block text-sm font-medium text-gray-700">Name</label>
+                    <input type="text" id="task-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+                </div>
+                 <div>
+                    <label for="task-category" class="block text-sm font-medium text-gray-700">Category</label>
+                    <input type="text" id="task-category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="e.g., Plumbing, Electrical">
+                </div>
+                <div>
+                    <label for="task-due-date" class="block text-sm font-medium text-gray-700">Due Start Date</label>
+                    <input type="date" id="task-due-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+                </div>
+                <div>
+                    <label for="task-end-date" class="block text-sm font-medium text-gray-700">Due End Date</label>
+                    <input type="date" id="task-end-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+                </div>
             </form>
-                        <ul id="peopleList" class="settings-list"></ul>
-                    </div>
-                    <div id="categoriesTab" class="settings-tab-content">
-    <form id="settingsCategoryForm" class="settings-form">
-                            <input type="text" id="settingsCategoryName" placeholder="New category name..." required>
-                            <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Category</button>
-                        </form>
-                       <ul id="categoryList" class="settings-list"></ul>
-                    </div>
-                    <div id="passwordsTab" class="settings-tab-content">
-                        <div class="settings-column-header">
-                    <h3>Manage Passwords</h3>
-                            <button id="openPasswordModalBtn" class="btn btn-primary settings-add-new-btn" title="Add New Password"><i class="fas fa-plus-circle"></i> Add New</button>
-                        </div>
-       <ul id="passwordList" class="settings-list"></ul>
-                    </div>
-                    <div id="websitesTab" class="settings-tab-content">
-                        <div class="settings-column-header">
-    <h3>Popular Websites</h3>
-                            <button id="openWebsiteModalBtn" class="btn btn-primary settings-add-new-btn" title="Add New Website"><i class="fas fa-plus-circle"></i> Add New</button>
-                        </div>
-                        <ul id="websiteList" class="settings-list"></ul>
-             </div>
-                    <div id="aboutTab" class="settings-tab-content">
-                        <h3>About</h3>
-                        <p><strong>Version:</strong> <span class="version-badge">5.2</span></p>
-                        <h4>Changelog:</h4>
-                        <ul>
-                            <li><strong>v5.2 (Current):</strong> Fixed dashboard logic for "Due Today" count and added category labels to task lists.</li>
-                            <li><strong>v5.1 (2025-08-01):</strong> Fixed "Due Today" dashboard count and added category labels to dashboard task lists.</li>
-                            <li><strong>v5.0 (2025-08-01):</strong> Implemented a dynamic Dashboard on the Home screen.</li>
-                            <li><strong>v4.1 (2025-08-01):</strong> Created a professional Reports Dashboard screen.</li>
-                            <li><strong>v4.0 (2025-08-01):</strong> Implemented modular file structure for future features (Sites, Commercial).</li>
-                            <li><strong>v3.0 (2025-08-01):</strong> Implemented Dark Mode, Data Backup/Restore, and an Archived Tasks viewer. Added a global search bar.</li>
-                        </ul>
-                    </div>
-                </div>
+            <div class="modal-footer">
+                <button type="button" id="cancel-add-task-btn-footer" class="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button type="submit" form="add-task-form" class="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">Add Item</button>
             </div>
         </div>
     </div>
 
-    <div id="archiveModal" class="modal">
-        <div class="modal-content modal-lg">
-            <header class="modal-header">
-                <h2>Archived Tasks</h2>
-                <button class="close-button">&times;</button>
-            </header>
-            <div class="form-body">
-                <ul id="archivedTasksList" class="settings-list"></ul>
-            </div>
-        </div>
-    </div>
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-3"></div>
 
-    <div id="passwordModal" class="modal">
-        <div class="modal-content modal-md">
-            <header class="modal-header">
-                <h2 id="passwordModalTitle">Add
-New Password</h2>
-                <button class="close-button">&times;</button>
-            </header>
-            <div class="form-body">
-                <div class="security-warning">
-                    <i class="fas fa-shield-alt"></i>
-  <strong>Warning:</strong> This is NOT a secure password vault. Data is stored unencrypted. Use for non-critical passwords only.
-</div>
-                <form id="settingsPasswordForm" class="settings-form-grid">
-                    <input type="hidden" id="passwordId">
-                    <input type="text" id="settingsPasswordService" placeholder="Service (e.g., Netflix)" required>
-                    <input type="text" id="settingsPasswordUsername" placeholder="Username / Email" required>
-            <input type="password" id="settingsPasswordValue" placeholder="Password" required>
-                    <input type="url" id="settingsPasswordLink" placeholder="Link (e.g., https://netflix.com)">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Password</button>
-                </form>
-            </div>
-    </div>
-    </div>
-
-    <div id="websiteModal" class="modal">
-        <div class="modal-content modal-md">
-            <header class="modal-header">
-                <h2 id="websiteModalTitle">Add New Website</h2>
-                <button class="close-button">&times;</button>
-            </header>
-            <div class="form-body">
-               <form id="settingsWebsiteForm" class="settings-form-grid">
-                    <input type="hidden" id="websiteId">
-                    <input type="text" id="settingsWebsiteService" placeholder="Website Name (e.g., Google)" required>
-                    <input type="text" id="settingsWebsiteUsername" placeholder="Username / Email" required>
-            <input type="password" id="settingsWebsiteValue" placeholder="Password" required>
-                    <input type="url" id="settingsWebsiteLink" placeholder="Link (e.g., https://google.com)" required>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Website</button>
-                </form>
-            </div>
-     </div>
-    </div>
-
-    <div id="linkModal" class="modal">
-        <div class="modal-content modal-md">
-            <header class="modal-header">
-                <h2>Manage Links</h2>
-                <button class="close-button">&times;</button>
-            </header>
-            <div class="form-body">
-             <form id="linkForm" class="settings-form-grid">
-                    <input type="text" id="linkName" placeholder="Link Name (e.g., Design Mockup)" required>
-                    <input type="url" id="linkUrl" placeholder="https://example.com" required>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Link</button>
-          </form>
-                <hr class="section-divider">
-                <h4>Existing Links</h4>
-                <ul id="existingLinksList" class="settings-list"></ul>
-            </div>
-        </div>
-    </div>
-
-    <div id="print-container" class="print-container"></div>
-    <div id="copy-toast" class="toast">Copied to
-clipboard!</div>
-
-    <script src="script.js"></script>
-    <script src="sites.js"></script>
-    <script src="commercial.js"></script>
+    <!-- Main Application Script -->
+    <script src="script.js" defer></script>
 </body>
 </html>
