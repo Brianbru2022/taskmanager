@@ -298,7 +298,7 @@ header.className = `sub-task-header ${isExpanded ? '' : 'collapsed'}`;
 const statusDropdownHTML = `<select class="sub-task-status" data-task-id="${taskObject.id}">${KANBAN_STATUSES.map(s => `<option value="${s}" ${taskObject.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>`;
 const quickCloseBtnHTML = `<button class="sub-task-quick-close" data-task-id="${taskObject.id}" title="Mark as Closed"><i class="fas fa-check-circle"></i></button>`;
 
-        header.innerHTML = `<span class="sub-task-toggle"><i class="fas fa-chevron-down"></i></span><span class="sub-task-title">${taskObject.name}</span>${assigneeIcon}<span><strong>Due:</strong> <input type="date" class="sub-task-due-date" value="${taskObject.dueDate}" data-task-id="${taskObject.id}"></span>${statusDropdownHTML}${quickCloseBtnHTML}`;
+        header.innerHTML = `<span class="sub-task-toggle"><i class="fas fa-chevron-down"></i></span><span class="sub-task-title">${taskObject.name}</span>${assigneeIcon}<span><strong>Due:</strong> <input type="date" class="sub-task-due-date" value="${taskObject.dueDate ? taskObject.dueDate.split('T')[0] : ''}" data-task-id="${taskObject.id}"></span>${statusDropdownHTML}${quickCloseBtnHTML}`;
 const body = document.createElement('div');
         body.className = `sub-task-body ${isExpanded ? '' : 'collapsed'}`;
         
@@ -324,7 +324,7 @@ linksSection.appendChild(linksList);
         body.appendChild(nestedSubtasksContainer);
         body.appendChild(createSubtaskForm(taskObject));
         container.append(header, body);
-header.addEventListener('click', (e) => { if (e.target.closest('button,select,input')) return; isExpanded ? expandedSubtasks.delete(taskObject.id) : expandedSubtasks.add(taskObject.id); header.classList.toggle('collapsed'); body.classList.toggle('collapsed'); });
+header.addEventListener('click', (e) => { if (e.target.closest('button,select,input,a')) return; isExpanded ? expandedSubtasks.delete(taskObject.id) : expandedSubtasks.add(taskObject.id); header.classList.toggle('collapsed'); body.classList.toggle('collapsed'); });
         
         container.querySelector('.sub-task-due-date').addEventListener('change', (e) => {
             const subTaskId = e.target.dataset.taskId;
@@ -359,6 +359,9 @@ subTask.closedDate = new Date().toISOString();
                     handleSubtaskClose(subTask.id);
  
 
+               } else {
+                    saveState();
+                    openTaskModal(currentEditingTask.id);
                }
             }
         });
@@ -447,7 +450,7 @@ if (!task) return;
 manageTaskHeader.innerHTML = `<h4>${task.name}</h4><div class="header-assignee"><div class="card-assignee-icon" style="background-color: ${people[task.assignee] || '#ccc'}" title="${task.assignee}">${getInitials(task.assignee)}</div><span>${task.assignee || 'Unassigned'}</span></div>`;
             taskNameInput.value = task.name;
             taskDescriptionInput.value = task.description;
-dueDateInput.value = task.dueDate;
+dueDateInput.value = task.dueDate ? task.dueDate.split('T')[0] : '';
             taskUrgentInput.checked = task.isUrgent;
             taskAssigneeSelect.value = task.assignee;
             categorySelect.value = task.category;
@@ -1039,7 +1042,6 @@ if (newStatus === 'Closed' && oldStatus !== 'Closed') {
 }
             } else {
                 const newTask = { id: getNextId(), ...sanitizeTask({}), ...taskData };
-updateMainTaskDueDate(newTask);
                 tasks.push(newTask);
             }
             saveState();
