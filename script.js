@@ -1276,8 +1276,7 @@ reader.readAsText(file);
 
             if (deleteBtn) {
                 if (confirm('Are you sure you want to permanently delete this task? This action cannot be undone.')) {
-                    tasks = tasks.filter(t 
-=> t.id !== taskId);
+                    tasks = tasks.filter(t => t.id !== taskId);
                     li.classList.add('fading-out');
                      setTimeout(() => {
                         saveState();
