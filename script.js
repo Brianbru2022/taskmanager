@@ -234,9 +234,20 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             </div>
         `;
 
-        const titleHTML = task.parentTaskName
-            ? `<span class="subtask-indicator">[SUB]</span> ${task.name} <small class="parent-task-indicator">of ${task.parentTaskName}</small>`
-            : `<span>${task.name}</span>`;
+        let titleHTML;
+        if (task.parentTaskName) {
+            titleHTML = `
+                <div class="title-content">
+                    <div class="main-title-line">
+                        <span class="subtask-indicator-label">Sub-task</span>
+                        <span class="task-name-text">${task.name}</span>
+                    </div>
+                    <small class="parent-task-indicator">of ${task.parentTaskName}</small>
+                </div>
+            `;
+        } else {
+            titleHTML = `<div class="title-content"><span class="task-name-text">${task.name}</span></div>`;
+        }
 
         card.innerHTML = `
             ${quickCloseBtnHTML}
@@ -255,7 +266,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         `;
         card.addEventListener('click', (e) => {
             if (e.target.closest('.task-card-quick-close')) return;
-            const rootParentId = task.parentId || task.id;
+            const rootParentId = task.parentId ? findTaskById(task.parentId)?.id || task.id : task.id;
             openTaskModal(rootParentId)
         });
         if (isDraggable) {
