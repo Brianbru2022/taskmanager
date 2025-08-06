@@ -20,6 +20,7 @@
                  <li class="active"><a href="#" id="homeLink"><i class="fas fa-home"></i> <span>Home</span></a></li>
                     <li><a href="#" id="tasksLink"><i class="fas fa-tasks"></i> <span>Tasks</span></a></li>
                     <li><a href="#" id="notesLink"><i class="fas fa-clipboard"></i> <span>Notes</span></a></li>
+                    <li><a href="#" id="manualLink"><i class="fas fa-book"></i> <span>Manual</span></a></li>
                     <li><a href="#" id="sitesLink"><i class="fas fa-hard-hat"></i> <span>Sites</span></a></li>
                     <li><a href="#" id="commercialLink"><i class="fas fa-building"></i> <span>Commercial</span></a></li>
                     <li><a href="#" id="reportsLink"><i class="fas fa-chart-bar"></i> <span>Reports</span></a></li>
@@ -125,6 +126,12 @@ id="categoryFilter"><option value="all">All Categories</option></select></div>
                     <button id="saveNotesBtn" class="btn btn-primary"><i class="fas fa-save"></i> Save All Notes</button>
                 </div>
                 <div id="notesContainer" class="notes-grid">
+                    </div>
+            </div>
+
+            <div id="manualView" class="view-container" style="display: none;">
+                <h2>User Manual</h2>
+                <div class="manual-sections" id="manualContent">
                     </div>
             </div>
 
@@ -259,10 +266,11 @@ none;"><label for="taskProgress">% Complete (Optional)</label><input type="numbe
              </div>
                     <div id="aboutTab" class="settings-tab-content">
                         <h3>About</h3>
-                        <p><strong>Version:</strong> <span class="version-badge">5.3</span></p>
+                        <p><strong>Version:</strong> <span class="version-badge">5.4</span></p>
                         <h4>Changelog:</h4>
                         <ul>
-                            <li><strong>v5.3 (Current):</strong> Implemented a Notes section with archiving and integrated open note count into the dashboard.</li>
+                            <li><strong>v5.4 (Current):</strong> Replaced window alerts with in-app notifications and added a user manual page to the sidebar.</li>
+                            <li><strong>v5.3:</strong> Implemented a Notes section with archiving and integrated open note count into the dashboard.</li>
                             <li><strong>v5.2:</strong> Fixed dashboard logic for "Due Today" count and added category labels to task lists.</li>
                             <li><strong>v5.1:</strong> Fixed "Due Today" dashboard count and added category labels to dashboard task lists.</li>
                             <li><strong>v5.0:</strong> Implemented a dynamic Dashboard on the Home screen.</li>
