@@ -5,10 +5,18 @@
     const SUBTASK_COLORS = ['subtask-color-1', 'subtask-color-2', 'subtask-color-3', 'subtask-color-4', 'subtask-color-5'];
     let currentEditingTask = null;
     let currentLinkTask = null;
+    let notes = []; // New state variable for notes
 
     // --- UTILITY & HELPER FUNCTIONS ---
-    const saveState = () => { localStorage.setItem('tasks', JSON.stringify(tasks)); localStorage.setItem('categories', JSON.stringify(categories)); localStorage.setItem('people', JSON.stringify(people)); localStorage.setItem('passwords',
-JSON.stringify(passwords)); localStorage.setItem('websites', JSON.stringify(websites)); renderAndPopulate(); };
+    const saveState = () => {
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+        localStorage.setItem('categories', JSON.stringify(categories));
+        localStorage.setItem('people', JSON.stringify(people));
+        localStorage.setItem('passwords', JSON.stringify(passwords));
+        localStorage.setItem('websites', JSON.stringify(websites));
+        localStorage.setItem('notes', JSON.stringify(notes)); // Save notes to localStorage
+        renderAndPopulate();
+    };
     const generateRandomColor = () => `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`;
     const getInitials = (name) => (name || '').split(' ').map(n => n[0]).join('').toUpperCase();
     const getNextId = (prefix = 'TASK') => `${prefix}-${Date.now()}`;
@@ -42,16 +50,20 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
     const queryAll = (selector) => document.querySelectorAll(selector);
     const kanbanBoard = get('kanbanBoard'), openNewTaskModalBtn = get('openNewTaskModalBtn'), assigneeFilter = get('assigneeFilter'), categoryFilter = get('categoryFilter'), sortByDate = get('sortByDate'), closedTasksFilter = get('closedTasksFilter'), taskModal = get('taskModal'), taskForm = get('taskForm'), modalTitle = get('modalTitle'), manageTaskHeader = get('manageTaskHeader'), taskNameInput = get('taskName'), taskDescriptionInput = get('taskDescription'), dueDateInput = get('dueDate'), taskUrgentInput = get('taskUrgent'), taskAssigneeSelect = get('taskAssignee'), categorySelect = get('categorySelect'), taskStatusSelect = get('taskStatus'), taskProgressInput = get('taskProgress'), progressContainer = get('progress-container'), deleteTaskBtn = get('deleteTaskBtn'), archiveTaskBtn = get('archiveTaskBtn'), addNewCategoryBtn = get('addNewCategoryBtn'), categoryModal = get('categoryModal'), categoryForm = get('categoryForm'), newCategoryNameInput = get('newCategoryName'), addNewPersonBtn = get('addNewPersonBtn'), personModal = get('personModal'), personForm = get('personForm'), newPersonNameInput = get('newPersonName'), subTaskSection = get('subTaskSection'), subtasksListContainer = get('subtasksListContainer'),
     addSubTaskFormContainer = get('addSubTaskFormContainer'), mainLogControls = get('mainLogControls'), logSummarySection = get('logSummarySection'), logSummaryContainer = get('logSummaryContainer'), reportsLink = get('reportsLink'), settingsBtn = get('settingsBtn'), settingsModal = get('settingsModal'), peopleList = get('peopleList'), categoryList = get('categoryList'), settingsPersonForm = get('settingsPersonForm'), settingsCategoryForm = get('settingsCategoryForm'), settingsPersonNameInput = get('settingsPersonName'), settingsCategoryNameInput = get('settingsCategoryName'), passwordList = get('passwordList'), settingsPasswordForm = get('settingsPasswordForm'), settingsPasswordServiceInput = get('settingsPasswordService'), settingsPasswordUsernameInput = get('settingsPasswordUsername'), settingsPasswordValueInput = get('settingsPasswordValue'), openPasswordModalBtn = get('openPasswordModalBtn'), passwordModal = get('passwordModal'), passwordModalTitle = get('passwordModalTitle'), passwordIdInput = get('passwordId'), settingsPasswordLinkInput = get('settingsPasswordLink'), linkModal = get('linkModal'), linkForm = get('linkForm'), linkNameInput = get('linkName'), linkUrlInput
-    = get('linkUrl'), existingLinksList = get('existingLinksList'), websiteList = get('websiteList'), openWebsiteModalBtn = get('openWebsiteModalBtn'), websiteModal = get('websiteModal'), globalSearchInput = get('globalSearchInput');
+    = get('linkUrl'), existingLinksList = get('existingLinksList'), websiteList = get('websiteList'), openWebsiteModalBtn = get('openWebsiteModalBtn'), websiteModal = get('websiteModal'), globalSearchInput = get('globalSearchInput'),
+    notesLink = get('notesLink'), notesContainer = get('notesContainer'), addNoteBtn = get('addNoteBtn'), saveNotesBtn = get('saveNotesBtn'),
+    archivedNotesList = get('archivedNotesList'); // New element selection for archived notes
 
     // --- DATA SANITIZATION & INITIAL LOAD ---
     const sanitizeTask = (task) => { const defaults = { name: 'Untitled', description: '', dueDate: new Date().toISOString().split('T')[0], assignee: null, category: 'Uncategorized', status: 'Open', subtasks: [], log: [], isArchived: false, isUrgent: false, closedDate: null, progress: null, links: [], archivedDate: null };
     const sanitized = { ...defaults, ...task }; sanitized.subtasks = (sanitized.subtasks || []).map(sub => ({...defaults, ...sub})); return sanitized; };
     const sanitizePassword = (p) => ({ id: getNextId('PWD'), service: 'Untitled', username: '', value: '', link: '', ...p });
     const sanitizeWebsite = (w) => ({ id: getNextId('WEB'), service: 'Untitled', username: '', value: '', link: '', ...w });
+    const sanitizeNote = (n) => ({id: getNextId('NOTE'), title: '', body: '', isArchived: false, ...n});
     const loadData = () => { try { tasks = (JSON.parse(localStorage.getItem('tasks')) || []).map(sanitizeTask); categories = JSON.parse(localStorage.getItem('categories')) || {};
     people = JSON.parse(localStorage.getItem('people')) || {}; passwords = (JSON.parse(localStorage.getItem('passwords')) || []).map(sanitizePassword);
         websites = (JSON.parse(localStorage.getItem('websites')) || []).map(sanitizeWebsite);
+        notes = (JSON.parse(localStorage.getItem('notes')) || []).map(sanitizeNote); // Load notes from localStorage
     } catch (error) { console.error("Failed to load data, starting fresh.", error); localStorage.clear(); } };
     const addSampleData = () => { if (tasks.length > 0 || Object.keys(people).length > 0) return;
     people = { 'Alice Johnson': '#0d6efd', 'Bob Smith': '#dc3545', 'Charlie Brown': '#ffc107', 'Diana Prince': '#6f42c1' };
@@ -856,13 +868,16 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
 
     const openArchiveModal = () => {
         const archivedTasksList = get('archivedTasksList');
+        const archivedNotesList = get('archivedNotesList');
         archivedTasksList.innerHTML = '';
-        const archived = tasks.filter(t => t.isArchived);
+        archivedNotesList.innerHTML = '';
+        const archivedTasks = tasks.filter(t => t.isArchived);
+        const archivedNotes = notes.filter(n => n.isArchived);
 
-        if (archived.length === 0) {
+        if (archivedTasks.length === 0) {
             archivedTasksList.innerHTML = `<div class="empty-state"><i class="fas fa-archive"></i> <p>No tasks have been archived.</p></div>`;
         } else {
-            archived.forEach(task => {
+            archivedTasks.forEach(task => {
                 const li = document.createElement('li');
                 li.dataset.id = task.id;
                 li.innerHTML = `
@@ -871,11 +886,30 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                         <small>Archived on: ${formatDateForDisplay(task.archivedDate)}</small>
                     </div>
                     <div>
-                        <button class="btn btn-secondary btn-sm restore-btn"><i class="fas fa-undo"></i> Restore</button>
-                        <button class="btn btn-danger btn-sm delete-perm-btn"><i class="fas fa-trash-alt"></i> Delete Permanently</button>
+                        <button class="btn btn-secondary btn-sm restore-btn" data-type="task"><i class="fas fa-undo"></i> Restore</button>
+                        <button class="btn btn-danger btn-sm delete-perm-btn" data-type="task"><i class="fas fa-trash-alt"></i> Delete Permanently</button>
                     </div>
                 `;
                 archivedTasksList.appendChild(li);
+            });
+        }
+        if (archivedNotes.length === 0) {
+            archivedNotesList.innerHTML = `<div class="empty-state"><i class="fas fa-clipboard"></i> <p>No notes have been archived.</p></div>`;
+        } else {
+            archivedNotes.forEach(note => {
+                 const li = document.createElement('li');
+                li.dataset.id = note.id;
+                li.innerHTML = `
+                    <div class="password-item-details">
+                        <strong>${note.title || 'Untitled Note'}</strong>
+                        <small>Archived on: ${formatDateForDisplay(note.archivedDate)}</small>
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary btn-sm restore-btn" data-type="note"><i class="fas fa-undo"></i> Restore</button>
+                        <button class="btn btn-danger btn-sm delete-perm-btn" data-type="note"><i class="fas fa-trash-alt"></i> Delete Permanently</button>
+                    </div>
+                `;
+                archivedNotesList.appendChild(li);
             });
         }
         openModal(get('archiveModal'));
@@ -903,6 +937,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             const dueDate = new Date(t.dueDate);
             return dueDate > today && dueDate <= nextWeek && t.status !== 'Closed';
         }).length;
+        const openNotesCount = notes.filter(n => !n.isArchived).length;
         
         get('stat-open').textContent = openCount;
         get('stat-in-progress').textContent = inProgressCount;
@@ -910,6 +945,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         get('stat-due-today').textContent = dueTodayCount;
         get('stat-due-this-week').textContent = dueThisWeekCount;
         get('stat-closed').textContent = closedCount;
+        get('stat-open-notes').textContent = openNotesCount;
 
         const urgentTasks = activeTasks.filter(t => t.isUrgent && t.status !== 'Closed').sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
         const upcomingTasks = activeTasks.filter(t => t.status !== 'Closed' && new Date(t.dueDate) >= today).sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate)).slice(0, 5);
@@ -971,12 +1007,114 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             renderDashboard();
         } else if (targetViewId === 'tasksView') {
             renderAndPopulate();
+        } else if (targetViewId === 'notesView') {
+            renderNotes();
         }
         
         const isTaskView = targetViewId === 'tasksView';
         openNewTaskModalBtn.style.display = isTaskView ? 'flex' : 'none';
         get('search-container').style.display = isTaskView ? 'flex' : 'none';
     };
+
+    // --- NOTES LOGIC ---
+    const renderNotes = () => {
+        notesContainer.innerHTML = '';
+        const activeNotes = notes.filter(n => !n.isArchived);
+        if (activeNotes.length === 0) {
+            notesContainer.innerHTML = `<div class="empty-state"><i class="fas fa-clipboard"></i> <p>You have no notes. Click 'Add New Note' to get started.</p></div>`;
+        } else {
+            activeNotes.forEach(note => {
+                const noteCard = document.createElement('div');
+                noteCard.className = 'note-card';
+                noteCard.dataset.id = note.id;
+                noteCard.innerHTML = `
+                    <div class="note-card-header">
+                        <input type="text" class="note-title" value="${note.title}" placeholder="Note Title...">
+                        <div class="note-card-actions">
+                            <button class="archive-note-btn" title="Archive Note"><i class="fas fa-archive"></i></button>
+                            <button class="delete-note-btn" title="Delete Note"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    </div>
+                    <textarea class="note-body" placeholder="Write your note here...">${note.body}</textarea>
+                `;
+                notesContainer.appendChild(noteCard);
+            });
+        }
+    };
+    
+    const addNote = () => {
+        const newNote = {
+            id: getNextId('NOTE'),
+            title: '',
+            body: '',
+            isArchived: false,
+        };
+        notes.push(newNote);
+        renderNotes();
+    };
+
+    const saveNotes = () => {
+        const noteCards = queryAll('.note-card');
+        notes = notes.filter(n => n.isArchived); // Keep archived notes
+        noteCards.forEach(card => {
+            const id = card.dataset.id;
+            const title = card.querySelector('.note-title').value;
+            const body = card.querySelector('.note-body').value;
+            notes.push({ id, title, body, isArchived: false });
+        });
+        saveState();
+        showToast('Notes saved successfully!');
+    };
+
+    const deleteNote = (noteId) => {
+        if (confirm('Are you sure you want to delete this note?')) {
+            notes = notes.filter(note => note.id !== noteId);
+            saveState();
+            renderNotes();
+        }
+    };
+
+    const archiveNote = (noteId) => {
+        const note = notes.find(n => n.id === noteId);
+        if (note && confirm(`Are you sure you want to archive the note "${note.title || 'Untitled Note'}"?`)) {
+            note.isArchived = true;
+            note.archivedDate = new Date().toISOString();
+            saveState();
+            renderNotes(); // Re-render to remove the archived note from the main view
+            showToast('Note archived!');
+        }
+    };
+
+    const restoreArchivedItem = (itemId, itemType) => {
+        if (itemType === 'task') {
+            const task = tasks.find(t => t.id === itemId);
+            if (task) {
+                task.isArchived = false;
+                task.archivedDate = null;
+            }
+        } else if (itemType === 'note') {
+             const note = notes.find(n => n.id === itemId);
+            if (note) {
+                note.isArchived = false;
+                note.archivedDate = null;
+            }
+        }
+        saveState();
+        openArchiveModal();
+    };
+
+    const deleteArchivedItem = (itemId, itemType) => {
+        if (confirm('Are you sure you want to permanently delete this item? This action cannot be undone.')) {
+            if (itemType === 'task') {
+                tasks = tasks.filter(t => t.id !== itemId);
+            } else if (itemType === 'note') {
+                notes = notes.filter(n => n.id !== itemId);
+            }
+            saveState();
+            openArchiveModal();
+        }
+    };
+    
 
     // --- INITIALIZATION ---
     const initialize = () => {
@@ -999,6 +1137,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         // Sidebar navigation
         get('homeLink').addEventListener('click', (e) => { e.preventDefault(); switchView('homeView'); });
         get('tasksLink').addEventListener('click', (e) => { e.preventDefault(); switchView('tasksView'); });
+        get('notesLink').addEventListener('click', (e) => { e.preventDefault(); switchView('notesView'); });
         get('sitesLink').addEventListener('click', (e) => { e.preventDefault(); switchView('sitesView'); });
         get('commercialLink').addEventListener('click', (e) => { e.preventDefault(); switchView('commercialView'); });
         reportsLink.addEventListener('click', (e) => { e.preventDefault(); switchView('reportsView'); });
@@ -1195,7 +1334,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         
         // Data management event listeners
         get('exportDataBtn').addEventListener('click', () => {
-            const data = { tasks, categories, people, passwords, websites };
+            const data = { tasks, categories, people, passwords, websites, notes }; // Include notes in export
             const json = JSON.stringify(data, null, 2);
             const blob = new Blob([json], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -1229,6 +1368,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                         categories = data.categories || {};
                         passwords = (data.passwords || []).map(sanitizePassword);
                         websites = (data.websites || []).map(sanitizeWebsite);
+                        notes = (data.notes || []).map(sanitizeNote); // Import notes
                         saveState();
                         showToast('Data imported successfully!');
                         closeModal(settingsModal);
@@ -1247,35 +1387,20 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
 
         get('viewArchivedBtn').addEventListener('click', openArchiveModal);
 
-        get('archivedTasksList').addEventListener('click', (e) => {
+        get('archiveModal').addEventListener('click', (e) => {
             const restoreBtn = e.target.closest('.restore-btn');
             const deleteBtn = e.target.closest('.delete-perm-btn');
             const li = e.target.closest('li');
             if (!li) return;
-            const taskId = li.dataset.id;
+            const itemId = li.dataset.id;
+            const itemType = restoreBtn ? restoreBtn.dataset.type : (deleteBtn ? deleteBtn.dataset.type : null);
             
             if (restoreBtn) {
-                const task = findTaskById(taskId);
-                if (task) {
-                    task.isArchived = false;
-                    task.archivedDate = null;
-                    li.classList.add('fading-out');
-                    setTimeout(() => {
-                        saveState();
-                        openArchiveModal(); // Re-render the modal
-                    }, 300);
-                }
+                restoreArchivedItem(itemId, itemType);
             }
 
             if (deleteBtn) {
-                if (confirm('Are you sure you want to permanently delete this task? This action cannot be undone.')) {
-                    tasks = tasks.filter(t => t.id !== taskId);
-                    li.classList.add('fading-out');
-                     setTimeout(() => {
-                        saveState();
-                        openArchiveModal(); // Re-render the modal
-                    }, 300);
-                }
+                deleteArchivedItem(itemId, itemType);
             }
         });
 
@@ -1287,6 +1412,44 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                 }
             });
         });
+        
+        // Notes event listeners
+        if (addNoteBtn) addNoteBtn.addEventListener('click', addNote);
+        if (saveNotesBtn) saveNotesBtn.addEventListener('click', saveNotes);
+        if (notesContainer) {
+            notesContainer.addEventListener('click', (e) => {
+                const deleteBtn = e.target.closest('.delete-note-btn');
+                const archiveBtn = e.target.closest('.archive-note-btn');
+                const noteCard = e.target.closest('.note-card');
+                if (!noteCard) return;
+
+                if (deleteBtn) {
+                    deleteNote(noteCard.dataset.id);
+                }
+                if (archiveBtn) {
+                    archiveNote(noteCard.dataset.id);
+                }
+            });
+        }
+        
+        // Listen for changes in notes to auto-save and update UI
+        if(notesContainer) {
+             notesContainer.addEventListener('input', (e) => {
+                 if(e.target.classList.contains('note-title') || e.target.classList.contains('note-body')) {
+                     const noteCard = e.target.closest('.note-card');
+                     if(noteCard) {
+                         const note = notes.find(n => n.id === noteCard.dataset.id);
+                         if(note) {
+                             note.title = noteCard.querySelector('.note-title').value;
+                             note.body = noteCard.querySelector('.note-body').value;
+                             // This auto-saves, but let's stick to explicit button for now for performance and user control
+                             // saveState();
+                         }
+                     }
+                 }
+             });
+        }
+
 
         renderAndPopulate();
     };
