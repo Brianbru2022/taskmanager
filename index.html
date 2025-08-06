@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="sites.css">
     <link rel="stylesheet" href="commercial.css">
+    <link rel="stylesheet" href="notes.css">
 </head>
 <body>
     <div class="page-wrapper">
@@ -18,6 +19,7 @@
                 <ul>
                  <li class="active"><a href="#" id="homeLink"><i class="fas fa-home"></i> <span>Home</span></a></li>
                     <li><a href="#" id="tasksLink"><i class="fas fa-tasks"></i> <span>Tasks</span></a></li>
+                    <li><a href="#" id="notesLink"><i class="fas fa-clipboard"></i> <span>Notes</span></a></li>
                     <li><a href="#" id="sitesLink"><i class="fas fa-hard-hat"></i> <span>Sites</span></a></li>
                     <li><a href="#" id="commercialLink"><i class="fas fa-building"></i> <span>Commercial</span></a></li>
                     <li><a href="#" id="reportsLink"><i class="fas fa-chart-bar"></i> <span>Reports</span></a></li>
@@ -85,6 +87,13 @@
                             <span id="stat-closed" class="stat-card-value">0</span>
                         </div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon open" style="background-color: var(--color-accent-secondary);"><i class="fas fa-clipboard"></i></div>
+                        <div class="stat-card-info">
+                            <span class="stat-card-title">Open Notes</span>
+                            <span id="stat-open-notes" class="stat-card-value">0</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="dashboard-columns">
                     <div class="dashboard-section">
@@ -108,6 +117,16 @@ id="categoryFilter"><option value="all">All Categories</option></select></div>
                 </div>
                 <main class="kanban-board" id="kanbanBoard"></main>
          </div>
+            
+            <div id="notesView" class="view-container" style="display: none;">
+                <h2>My Notes</h2>
+                <div class="notes-actions">
+                    <button id="addNoteBtn" class="btn btn-primary"><i class="fas fa-plus"></i> Add New Note</button>
+                    <button id="saveNotesBtn" class="btn btn-primary"><i class="fas fa-save"></i> Save All Notes</button>
+                </div>
+                <div id="notesContainer" class="notes-grid">
+                    </div>
+            </div>
 
             <div id="sitesView" class="view-container" style="display: none;">
                 <h2>Sites</h2>
@@ -204,9 +223,9 @@ none;"><label for="taskProgress">% Complete (Optional)</label><input type="numbe
                             </div>
                         </div>
                          <div class="settings-section">
-                            <h4>Archived Tasks</h4>
+                            <h4>Archived Tasks & Notes</h4>
                             <div class="data-actions">
-                                <button id="viewArchivedBtn" class="btn btn-secondary"><i class="fas fa-archive"></i> View Archived Tasks</button>
+                                <button id="viewArchivedBtn" class="btn btn-secondary"><i class="fas fa-archive"></i> View Archived</button>
                             </div>
                         </div>
                     </div>
@@ -240,15 +259,16 @@ none;"><label for="taskProgress">% Complete (Optional)</label><input type="numbe
              </div>
                     <div id="aboutTab" class="settings-tab-content">
                         <h3>About</h3>
-                        <p><strong>Version:</strong> <span class="version-badge">5.2</span></p>
+                        <p><strong>Version:</strong> <span class="version-badge">5.3</span></p>
                         <h4>Changelog:</h4>
                         <ul>
-                            <li><strong>v5.2 (Current):</strong> Fixed dashboard logic for "Due Today" count and added category labels to task lists.</li>
-                            <li><strong>v5.1 (2025-08-01):</strong> Fixed "Due Today" dashboard count and added category labels to dashboard task lists.</li>
-                            <li><strong>v5.0 (2025-08-01):</strong> Implemented a dynamic Dashboard on the Home screen.</li>
-                            <li><strong>v4.1 (2025-08-01):</strong> Created a professional Reports Dashboard screen.</li>
-                            <li><strong>v4.0 (2025-08-01):</strong> Implemented modular file structure for future features (Sites, Commercial).</li>
-                            <li><strong>v3.0 (2025-08-01):</strong> Implemented Dark Mode, Data Backup/Restore, and an Archived Tasks viewer. Added a global search bar.</li>
+                            <li><strong>v5.3 (Current):</strong> Implemented a Notes section with archiving and integrated open note count into the dashboard.</li>
+                            <li><strong>v5.2:</strong> Fixed dashboard logic for "Due Today" count and added category labels to task lists.</li>
+                            <li><strong>v5.1:</strong> Fixed "Due Today" dashboard count and added category labels to dashboard task lists.</li>
+                            <li><strong>v5.0:</strong> Implemented a dynamic Dashboard on the Home screen.</li>
+                            <li><strong>v4.1:</strong> Created a professional Reports Dashboard screen.</li>
+                            <li><strong>v4.0:</strong> Implemented modular file structure for future features (Sites, Commercial).</li>
+                            <li><strong>v3.0:</strong> Implemented Dark Mode, Data Backup/Restore, and an Archived Tasks viewer. Added a global search bar.</li>
                         </ul>
                     </div>
                 </div>
@@ -259,11 +279,18 @@ none;"><label for="taskProgress">% Complete (Optional)</label><input type="numbe
     <div id="archiveModal" class="modal">
         <div class="modal-content modal-lg">
             <header class="modal-header">
-                <h2>Archived Tasks</h2>
+                <h2>Archived Items</h2>
                 <button class="close-button">&times;</button>
             </header>
             <div class="form-body">
-                <ul id="archivedTasksList" class="settings-list"></ul>
+                <div class="archived-section">
+                    <h3>Archived Tasks</h3>
+                    <ul id="archivedTasksList" class="settings-list"></ul>
+                </div>
+                <div class="archived-section">
+                    <h3>Archived Notes</h3>
+                    <ul id="archivedNotesList" class="settings-list"></ul>
+                </div>
             </div>
         </div>
     </div>
@@ -337,5 +364,6 @@ clipboard!</div>
     <script src="script.js"></script>
     <script src="sites.js"></script>
     <script src="commercial.js"></script>
+    <script src="notes.js"></script>
 </body>
 </html>
