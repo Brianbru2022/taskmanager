@@ -5,7 +5,7 @@
     const SUBTASK_COLORS = ['subtask-color-1', 'subtask-color-2', 'subtask-color-3', 'subtask-color-4', 'subtask-color-5'];
     let currentEditingTask = null;
     let currentLinkTask = null;
-    let notes = []; // New state variable for notes
+    let notes = [];
 
     // --- UTILITY & HELPER FUNCTIONS ---
     const saveState = () => {
@@ -14,7 +14,7 @@
         localStorage.setItem('people', JSON.stringify(people));
         localStorage.setItem('passwords', JSON.stringify(passwords));
         localStorage.setItem('websites', JSON.stringify(websites));
-        localStorage.setItem('notes', JSON.stringify(notes)); // Save notes to localStorage
+        localStorage.setItem('notes', JSON.stringify(notes));
         renderAndPopulate();
     };
     const generateRandomColor = () => `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`;
@@ -30,7 +30,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         while (addedDays < days) {
             newDate.setDate(newDate.getDate() + 1);
             const dayOfWeek = newDate.getDay();
-            if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0 = Sunday, 6 = Saturday
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
                 addedDays++;
             }
         }
@@ -44,8 +44,10 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             toast.classList.remove('show');
         }, 2000);
     };
-    // New function for in-app notifications
     const showInAppNotification = (message, type = 'info', parentElement) => {
+        // Remove existing notifications from the same parent to prevent stacking
+        parentElement.querySelectorAll('.in-app-notification').forEach(n => n.remove());
+        
         const notification = document.createElement('div');
         notification.className = `in-app-notification in-app-notification-${type}`;
         notification.innerHTML = `<span>${message}</span><button class="close-notification-btn">&times;</button>`;
@@ -59,6 +61,34 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             setTimeout(() => notification.remove(), 300);
         }, 5000);
     };
+    // Replaced window alert with in-app notification for prompt confirmation
+    const showInAppConfirmation = (message, onConfirm) => {
+        const modal = document.createElement('div');
+        modal.className = 'modal is-active';
+        modal.innerHTML = `
+            <div class="modal-content modal-sm">
+                <header class="modal-header">
+                    <h2>Confirm Action</h2>
+                    <button class="close-button">&times;</button>
+                </header>
+                <div class="form-body">
+                    <p>${message}</p>
+                </div>
+                <footer class="modal-footer">
+                    <button class="btn btn-secondary cancel-btn">Cancel</button>
+                    <button class="btn btn-danger confirm-btn">Confirm</button>
+                </footer>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        modal.querySelector('.close-button').addEventListener('click', () => modal.remove());
+        modal.querySelector('.cancel-btn').addEventListener('click', () => modal.remove());
+        modal.querySelector('.confirm-btn').addEventListener('click', () => {
+            onConfirm();
+            modal.remove();
+        });
+    };
 
     // --- DOM ELEMENT SELECTION ---
     const get = (id) => document.getElementById(id);
@@ -67,7 +97,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
     addSubTaskFormContainer = get('addSubTaskFormContainer'), mainLogControls = get('mainLogControls'), logSummarySection = get('logSummarySection'), logSummaryContainer = get('logSummaryContainer'), reportsLink = get('reportsLink'), settingsBtn = get('settingsBtn'), settingsModal = get('settingsModal'), peopleList = get('peopleList'), categoryList = get('categoryList'), settingsPersonForm = get('settingsPersonForm'), settingsCategoryForm = get('settingsCategoryForm'), settingsPersonNameInput = get('settingsPersonName'), settingsCategoryNameInput = get('settingsCategoryName'), passwordList = get('passwordList'), settingsPasswordForm = get('settingsPasswordForm'), settingsPasswordServiceInput = get('settingsPasswordService'), settingsPasswordUsernameInput = get('settingsPasswordUsername'), settingsPasswordValueInput = get('settingsPasswordValue'), openPasswordModalBtn = get('openPasswordModalBtn'), passwordModal = get('passwordModal'), passwordModalTitle = get('passwordModalTitle'), passwordIdInput = get('passwordId'), settingsPasswordLinkInput = get('settingsPasswordLink'), linkModal = get('linkModal'), linkForm = get('linkForm'), linkNameInput = get('linkName'), linkUrlInput
     = get('linkUrl'), existingLinksList = get('existingLinksList'), websiteList = get('websiteList'), openWebsiteModalBtn = get('openWebsiteModalBtn'), websiteModal = get('websiteModal'), globalSearchInput = get('globalSearchInput'),
     notesLink = get('notesLink'), notesContainer = get('notesContainer'), addNoteBtn = get('addNoteBtn'), saveNotesBtn = get('saveNotesBtn'),
-    archivedNotesList = get('archivedNotesList'); // New element selection for archived notes
+    archivedNotesList = get('archivedNotesList'), manualLink = get('manualLink'), manualContent = get('manualContent');
 
     // --- DATA SANITIZATION & INITIAL LOAD ---
     const sanitizeTask = (task) => { const defaults = { name: 'Untitled', description: '', dueDate: new Date().toISOString().split('T')[0], assignee: null, category: 'Uncategorized', status: 'Open', subtasks: [], log: [], isArchived: false, isUrgent: false, closedDate: null, progress: null, links: [], archivedDate: null };
@@ -78,7 +108,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
     const loadData = () => { try { tasks = (JSON.parse(localStorage.getItem('tasks')) || []).map(sanitizeTask); categories = JSON.parse(localStorage.getItem('categories')) || {};
     people = JSON.parse(localStorage.getItem('people')) || {}; passwords = (JSON.parse(localStorage.getItem('passwords')) || []).map(sanitizePassword);
         websites = (JSON.parse(localStorage.getItem('websites')) || []).map(sanitizeWebsite);
-        notes = (JSON.parse(localStorage.getItem('notes')) || []).map(sanitizeNote); // Load notes from localStorage
+        notes = (JSON.parse(localStorage.getItem('notes')) || []).map(sanitizeNote);
     } catch (error) { console.error("Failed to load data, starting fresh.", error); localStorage.clear(); } };
     const addSampleData = () => { if (tasks.length > 0 || Object.keys(people).length > 0) return;
     people = { 'Alice Johnson': '#0d6efd', 'Bob Smith': '#dc3545', 'Charlie Brown': '#ffc107', 'Diana Prince': '#6f42c1' };
@@ -143,7 +173,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             return sortByDate.value === 'oldest' ? dateA - dateB : dateB - dateA;
         });
         const groupedTasks = KANBAN_STATUSES.reduce((acc, status) => ({ ...acc, [status]: [] }), {});
-        filteredTasks.forEach(task => { if (groupedTasks[task.status]) { groupedTasks[task.status].push(task); } });
+        filteredTasks.forEach(task => { if (groupedTasks[task.status]) { groupedTasks[status].push(task); } });
         kanbanBoard.innerHTML = '';
         const headerColors = { 'Open': '#6c757d', 'In Progress': '#B4975A', 'Closed': '#1E4D2B' };
         const emptyStateMessages = { 'Open': "No open tasks. Let's add one!", 'In Progress': "Nothing in progress. Time to start a task!", 'Closed': "No tasks closed recently." };
@@ -232,7 +262,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
 
         // Render "This Week's Tasks" column
         const thisWeeksTasks = Array.from(thisWeeksTaskIds)
-            .filter(id => !todaysTaskIds.has(id)) // Exclude tasks already shown for today
+            .filter(id => !todaysTaskIds.has(id))
             .map(id => findTaskById(id));
         const weekColumn = document.createElement('div');
         weekColumn.className = 'kanban-column this-week-tasks';
@@ -327,7 +357,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
     
     const renderSubTask = (taskObject, level = 0) => {
         if (taskObject.status === 'Closed') {
-            return document.createDocumentFragment(); // Don't render closed subtasks
+            return document.createDocumentFragment();
         }
         const container = document.createElement('div');
         const colorClass = SUBTASK_COLORS[level % SUBTASK_COLORS.length];
@@ -403,12 +433,12 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                 logAction(currentEditingTask, `Due date for sub-task "${subTask.name}" changed to ${formatDateForDisplay(subTask.dueDate)}.`, subTask.assignee);
                 updateMainTaskDueDate(currentEditingTask);
                 saveState();
-                openTaskModal(currentEditingTask.id); // Re-render to show updated parent due date
+                openTaskModal(currentEditingTask.id);
             }
         });
 
         header.querySelector('.sub-task-quick-close').addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent header click from toggling expand/collapse
+            e.stopPropagation();
             handleSubtaskClose(e.currentTarget.dataset.taskId);
         });
         body.querySelector('.add-link-btn-header').addEventListener('click', (e) => {
@@ -461,7 +491,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
     (function traverse(subtasks) { (subtasks || []).forEach(st => { if (st.assignee) assignees.add(st.assignee); traverse(st.subtasks); }); })(task.subtasks); return assignees; };
     const handleAddSubTask = (form, parentTask) => {
         const name = form.querySelector('.new-subtask-name').value.trim(), description = form.querySelector('.new-subtask-description').value.trim(), assignee = form.querySelector('.new-subtask-assignee').value, dueDate = form.querySelector('.new-subtask-due-date').value;
-        if (!name || !assignee || !dueDate) return alert('Please provide a title, assignee, and due date for the sub-task.');
+        if (!name || !assignee || !dueDate) return showInAppNotification('Please provide a title, assignee, and due date for the sub-task.', 'error', get('taskModal').querySelector('.form-body'));
         if (!parentTask.subtasks) parentTask.subtasks = [];
         const newSubtask = { id: getNextId('SUB'), name, description, assignee, dueDate, status: 'Open', subtasks: [], log: [], closedDate: null, progress: null, links: [] };
         parentTask.subtasks.push(newSubtask);
@@ -527,7 +557,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
     
     const updateMainTaskDueDate = (task) => {
         if (task.isUrgent) {
-            return; // Do not auto-update urgent tasks
+            return;
         }
 
         let allSubtasks = [];
@@ -543,20 +573,19 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         })(task.subtasks);
 
         if (allSubtasks.length === 0) {
-            return; // No open subtasks to base the date on
+            return;
         }
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Use a consistent local timezone parsing for sub-task dates
         const hasOverdueSubtask = allSubtasks.some(st => new Date(st.dueDate + 'T00:00:00') < today);
 
         if (hasOverdueSubtask) {
-            const newDueDate = new Date(); // Start from today
+            const newDueDate = new Date();
             newDueDate.setDate(newDueDate.getDate() + 7);
             task.dueDate = newDueDate.toISOString().split('T')[0];
-            return; // Overdue rule takes precedence
+            return;
         }
 
         const latestSubtaskDueDate = new Date(Math.max(...allSubtasks.map(st => new Date(st.dueDate + 'T00:00:00'))));
@@ -591,13 +620,13 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
     const triggerPrint = (reportHTML) => { get('print-container').innerHTML = reportHTML; window.print();
     };
     const generateAssigneeReport = () => { const selectedUsers = Array.from(queryAll('#reportUserSelectionContainer .report-user-checkbox:checked')).map(cb => cb.value);
-    if (selectedUsers.length === 0) return showToast('Please select at least one user.');
+    if (selectedUsers.length === 0) return showInAppNotification('Please select at least one user.', 'error', get('reportConfigModal').querySelector('.form-body'));
     const reportTasks = tasks.filter(task => !task.isArchived && selectedUsers.some(user => getAllAssignees(task).has(user))); 
         triggerPrint(generateReportHTML('Task Report by Assignee', reportTasks)); 
         closeModal(get('reportConfigModal'));
     };
     const generateOverdueReport = () => { const overdueTasks = tasks.filter(task => !task.isArchived && new Date(task.dueDate) < new Date() && !['Closed'].includes(task.status));
-    if (overdueTasks.length === 0) { showToast('No overdue tasks found.'); return; } triggerPrint(generateReportHTML('Overdue Tasks Report', overdueTasks)); };
+    if (overdueTasks.length === 0) { showInAppNotification('No overdue tasks found.', 'info', get('reportsView')); return; } triggerPrint(generateReportHTML('Overdue Tasks Report', overdueTasks)); };
     // --- SETTINGS MODAL ---
     const isPersonInUse = (personName) => {
         const checkTasks = (taskList) => {
@@ -645,12 +674,12 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                         showInAppNotification(`Cannot delete "${name}" as they are currently assigned to one or more tasks.`, 'error', get('peopleTab'));
                         return;
                     }
-                    if (confirm(`Are you sure you want to delete "${name}"?`)) {
+                    showInAppConfirmation(`Are you sure you want to delete "${name}"?`, () => {
                         delete people[name];
                         saveState();
                         openSettingsModal();
                         showInAppNotification(`"${name}" has been deleted.`, 'success', get('peopleTab'));
-                    }
+                    });
                 });
                 peopleList.appendChild(li);
             });
@@ -683,12 +712,12 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                         showInAppNotification(`Cannot delete "${name}" as it is currently used by one or more tasks.`, 'error', get('categoriesTab'));
                         return;
                     }
-                    if (confirm(`Are you sure you want to delete the category "${name}"?`)) {
+                     showInAppConfirmation(`Are you sure you want to delete the category "${name}"?`, () => {
                         delete categories[name];
                         saveState();
                         openSettingsModal();
                         showInAppNotification(`Category "${name}" has been deleted.`, 'success', get('categoriesTab'));
-                    }
+                    });
                 });
                 categoryList.appendChild(li);
             });
@@ -745,12 +774,12 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                 });
                 li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
                     const id = e.target.dataset.id;
-                    if (confirm(`Are you sure you want to delete the password for "${p.service}"?`)) {
+                    showInAppConfirmation(`Are you sure you want to delete the password for "${p.service}"?`, () => {
                         passwords = passwords.filter(pwd => pwd.id !== id);
                         saveState();
                         openSettingsModal();
                         showInAppNotification(`Password for "${p.service}" has been deleted.`, 'success', get('passwordsTab'));
-                    }
+                    });
                 });
                 passwordList.appendChild(li);
             });
@@ -806,12 +835,12 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                 });
                 li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
                     const id = e.target.dataset.id;
-                    if (confirm(`Are you sure you want to delete the website credentials for "${w.service}"?`)) {
+                    showInAppConfirmation(`Are you sure you want to delete the website credentials for "${w.service}"?`, () => {
                         websites = websites.filter(web => web.id !== id);
                         saveState();
                         openSettingsModal();
                         showInAppNotification(`Website "${w.service}" has been deleted.`, 'success', get('websitesTab'));
-                    }
+                    });
                 });
                 websiteList.appendChild(li);
             });
@@ -876,9 +905,8 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                 const linkIndex = parseInt(e.currentTarget.dataset.index, 10);
                 currentLinkTask.links.splice(linkIndex, 1);
                 saveState();
-                openLinkModal(taskId); // Re-render the link list
-                openTaskModal(currentEditingTask.id); // Re-render the main task modal
- 
+                openLinkModal(taskId);
+                openTaskModal(currentEditingTask.id);
             });
             existingLinksList.appendChild(li);
         });
@@ -1028,6 +1056,8 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             renderAndPopulate();
         } else if (targetViewId === 'notesView') {
             renderNotes();
+        } else if (targetViewId === 'manualView') {
+            renderManual();
         }
         
         const isTaskView = targetViewId === 'tasksView';
@@ -1074,7 +1104,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
 
     const saveNotes = () => {
         const noteCards = queryAll('.note-card');
-        notes = notes.filter(n => n.isArchived); // Keep archived notes
+        notes = notes.filter(n => n.isArchived);
         noteCards.forEach(card => {
             const id = card.dataset.id;
             const title = card.querySelector('.note-title').value;
@@ -1086,22 +1116,25 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
     };
 
     const deleteNote = (noteId) => {
-        if (confirm('Are you sure you want to delete this note?')) {
+        showInAppConfirmation('Are you sure you want to permanently delete this note?', () => {
             notes = notes.filter(note => note.id !== noteId);
             saveState();
             renderNotes();
-        }
+            showInAppNotification('Note deleted permanently.', 'success', get('notesView'));
+        });
     };
 
     const archiveNote = (noteId) => {
         const note = notes.find(n => n.id === noteId);
-        if (note && confirm(`Are you sure you want to archive the note "${note.title || 'Untitled Note'}"?`)) {
-            note.isArchived = true;
-            note.archivedDate = new Date().toISOString();
-            saveState();
-            renderNotes(); // Re-render to remove the archived note from the main view
-            showToast('Note archived!');
-        }
+        showInAppConfirmation(`Are you sure you want to archive the note "${note.title || 'Untitled Note'}"?`, () => {
+            if (note) {
+                note.isArchived = true;
+                note.archivedDate = new Date().toISOString();
+                saveState();
+                renderNotes();
+                showToast('Note archived!');
+            }
+        });
     };
 
     const restoreArchivedItem = (itemId, itemType) => {
@@ -1123,7 +1156,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
     };
 
     const deleteArchivedItem = (itemId, itemType) => {
-        if (confirm('Are you sure you want to permanently delete this item? This action cannot be undone.')) {
+        showInAppConfirmation('Are you sure you want to permanently delete this item? This action cannot be undone.', () => {
             if (itemType === 'task') {
                 tasks = tasks.filter(t => t.id !== itemId);
                 showInAppNotification('Task deleted permanently.', 'success', get('archiveModal').querySelector('.modal-content'));
@@ -1133,7 +1166,93 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             }
             saveState();
             openArchiveModal();
-        }
+        });
+    };
+
+    const renderManual = () => {
+        const manualHtml = `
+            <h3>1. The Dashboard (Home View)</h3>
+            <p>The Home view serves as your main command center, offering a real-time overview of your workload.</p>
+            <h4>Stats Grid</h4>
+            <ul>
+                <li><strong>Open</strong>: Number of tasks with a status of "Open".</li>
+                <li><strong>In Progress</strong>: Number of tasks with a status of "In Progress".</li>
+                <li><strong>Overdue</strong>: Number of active tasks whose due date has passed.</li>
+                <li><strong>Due Today</strong>: Number of active tasks due on the current day.</li>
+                <li><strong>Due This Week</strong>: Number of active tasks with a due date within the next seven days, excluding those due today.</li>
+                <li><strong>Closed</strong>: Total count of all tasks that have been completed.</li>
+                <li><strong>Open Notes</strong>: The count of your active notes that have not been archived.</li>
+            </ul>
+            <h4>Task Lists</h4>
+            <ul>
+                <li><strong>Urgent Tasks</strong>: This list displays all tasks that have been marked as "Urgent" and are not yet closed. They are sorted by their due date, with the oldest appearing first.</li>
+                <li><strong>Upcoming Tasks</strong>: This list shows your top 5 upcoming, non-closed tasks, sorted by their due date.</li>
+            </ul>
+
+            <h3>2. Task Management (Tasks View)</h3>
+            <p>The Tasks view is where you manage individual work items using a Kanban board.</p>
+            <h4>Kanban Board Navigation</h4>
+            <p>The board organizes tasks into columns by their status. You can change a task's status by simply dragging and dropping its card into a different column.</p>
+            <h4>Filters and Sorting</h4>
+            <p>Use the controls at the top of the page to customize your view.</p>
+            <ul>
+                <li><strong>Filter by Assignee/Category</strong>: Narrow down tasks by who is responsible or what type of work it is.</li>
+                <li><strong>Sort by Due Date</strong>: Arrange tasks by oldest or newest due date.</li>
+                <li><strong>Closed Tasks</strong>: Toggle between showing only tasks closed in the last 7 days or showing all closed tasks.</li>
+            </ul>
+            <h4>Task Creation</h4>
+            <p>Click the "Add Task" button in the top-right to create a new task. The modal allows you to define a task name, description, due date, assignee, and category.</p>
+            <h4>Task Details (Modal)</h4>
+            <p>Clicking a task card opens a detailed modal with comprehensive management options.</p>
+            <ul>
+                <li><strong>Main Details</strong>: Edit the core information, including a progress slider for "In Progress" tasks.</li>
+                <li><strong>Sub-Tasks</strong>: Add nested sub-tasks with their own assignees and due dates to break down complex work.</li>
+                <li><strong>Action Log</strong>: The log automatically records changes and allows you to manually add notes or "chasers" (e.g., "Email sent").</li>
+                <li><strong>Links</strong>: Add and manage external URLs relevant to the task.</li>
+                <li><strong>Action Buttons</strong>: Use the buttons to save, archive, or permanently delete the task.</li>
+            </ul>
+
+            <h3>3. Notes Management (Notes View)</h3>
+            <p>The Notes view is a space for capturing quick thoughts and reference information.</p>
+            <h4>Notes Creation</h4>
+            <p>Click the "Add New Note" button to create a new, empty note card.</p>
+            <h4>Saving Notes</h4>
+            <p>All notes are saved to local storage when you click the "Save All Notes" button. This action saves the current state of all notes, including any changes to their content.</p>
+            <h4>Managing Notes</h4>
+            <p>Each note card is an editable text area. Use the buttons in the top-right of each note card to manage it.</p>
+            <ul>
+                <li><strong>Archive</strong>: The archive icon moves a note out of the main view and into the archive. This is the recommended action for notes that are no longer needed but may be useful in the future.</li>
+                <li><strong>Delete</strong>: The trash icon will permanently delete the note. A confirmation prompt will appear before deletion.</li>
+            </ul>
+
+            <h3>4. Reports</h3>
+            <p>The Reports view provides functionality to generate printable reports from your task data.</p>
+            <ul>
+                <li><strong>Report by Assignee</strong>: Generates a detailed report of all active tasks, grouped by the selected users.</li>
+                <li><strong>Overdue Tasks Report</strong>: Creates a clear report of all tasks that are past their due date and have not been closed.</li>
+            </ul>
+
+            <h3>5. Settings</h3>
+            <p>The Settings modal, accessible via the gear icon, provides global configuration options.</p>
+            <h4>General Settings</h4>
+            <ul>
+                <li><strong>Appearance</strong>: A toggle switch to change the application's theme between Light and Dark Mode.</li>
+                <li><strong>Data Management</strong>: Export all application data to a JSON file or import a backup file.</li>
+                <li><strong>Archived Items</strong>: A dedicated section to view and manage your archived tasks and notes.</li>
+            </ul>
+            <h4>Archived Items Management</h4>
+            <p>The archive modal is split into two lists: one for archived tasks and one for archived notes.</p>
+            <ul>
+                <li><strong>Restore</strong>: Moves the item back to its original view.</li>
+                <li><strong>Delete Permanently</strong>: Deletes the item permanently from the application. This action cannot be undone.</li>
+            </ul>
+            <h4>Other Settings</h4>
+            <ul>
+                <li><strong>People & Categories</strong>: Manage the names and colors for your team and task types. An in-app notification will warn you if you cannot delete an item because it is in use.</li>
+                <li><strong>Passwords & Websites</strong>: Manage basic credentials. This is **NOT** a secure password vault; data is stored unencrypted.</li>
+            </ul>
+        `;
+        manualContent.innerHTML = manualHtml;
     };
     
 
@@ -1153,12 +1272,13 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
 
         loadData();
         addSampleData();
-        switchView('homeView'); // Set default view
+        switchView('homeView');
 
         // Sidebar navigation
         get('homeLink').addEventListener('click', (e) => { e.preventDefault(); switchView('homeView'); });
         get('tasksLink').addEventListener('click', (e) => { e.preventDefault(); switchView('tasksView'); });
         get('notesLink').addEventListener('click', (e) => { e.preventDefault(); switchView('notesView'); });
+        get('manualLink').addEventListener('click', (e) => { e.preventDefault(); switchView('manualView'); });
         get('sitesLink').addEventListener('click', (e) => { e.preventDefault(); switchView('sitesView'); });
         get('commercialLink').addEventListener('click', (e) => { e.preventDefault(); switchView('commercialView'); });
         reportsLink.addEventListener('click', (e) => { e.preventDefault(); switchView('reportsView'); });
@@ -1172,7 +1292,10 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         taskForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const assignee = taskAssigneeSelect.value, category = categorySelect.value;
-            if (!assignee || !category) return alert('Main task must have an assignee and category.');
+            if (!assignee || !category) {
+                showInAppNotification('Main task must have an assignee and category.', 'error', get('taskModal').querySelector('.form-body'));
+                return;
+            }
             
             const oldStatus = currentEditingTask ? currentEditingTask.status : null;
             
@@ -1205,10 +1328,9 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                 if (newStatus === 'Closed' && oldStatus !== 'Closed') {
                     logAction(currentEditingTask, `Task status changed to Closed.`, currentEditingTask.assignee);
                 }
-                // *** FIX: Removed call to updateMainTaskDueDate here to prevent override ***
             } else {
                 const newTask = { id: getNextId(), ...sanitizeTask({}), ...taskData };
-                updateMainTaskDueDate(newTask); // This is fine for new tasks
+                updateMainTaskDueDate(newTask);
                 tasks.push(newTask);
             }
             saveState();
@@ -1270,14 +1392,14 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             const link = settingsPasswordLinkInput.value.trim();
           
             if (service && username && value) {
-                if (id) { // Editing existing
+                if (id) {
                     const password = passwords.find(p => p.id === id);
                     if (password) {
                       
                         Object.assign(password, { service, username, value, link });
                         showInAppNotification(`Password for "${service}" updated.`, 'success', get('passwordsTab'));
                     }
-                } else { // Adding new
+                } else {
                     passwords.push(sanitizePassword({ service, username, value, link }));
                     showInAppNotification(`Password for "${service}" added.`, 'success', get('passwordsTab'));
                 }
@@ -1296,13 +1418,13 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             const value = get('settingsWebsiteValue').value.trim();
             const link = get('settingsWebsiteLink').value.trim();
             if (service && username && value) {
-                if (id) { // Editing existing
+                if (id) {
                     const website = websites.find(w => w.id === id);
                     if (website) {
                         Object.assign(website, { service, username, value, link });
                         showInAppNotification(`Website "${service}" updated.`, 'success', get('websitesTab'));
                     }
-                } else { // Adding new
+                } else {
                     websites.push(sanitizeWebsite({ service, username, value, link }));
                     showInAppNotification(`Website "${service}" added.`, 'success', get('websitesTab'));
                 }
@@ -1330,8 +1452,28 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             openLinkModal(currentEditingTask.id);
         });
         openNewTaskModalBtn.addEventListener('click', () => openTaskModal());
-        deleteTaskBtn.addEventListener('click', () => { if (currentEditingTask && confirm('Delete this task?')) { tasks = tasks.filter(t => t.id !== currentEditingTask.id); saveState(); closeModal(taskModal); showToast('Task deleted.'); } });
-        archiveTaskBtn.addEventListener('click', () => { if (currentEditingTask && confirm('Archive this task?')) { const task = findTaskById(currentEditingTask.id); task.isArchived = true; task.archivedDate = new Date().toISOString(); saveState(); closeModal(taskModal); showToast('Task archived!'); } });
+        deleteTaskBtn.addEventListener('click', () => {
+             showInAppConfirmation('Are you sure you want to delete this task? This action cannot be undone.', () => {
+                 if (currentEditingTask) {
+                    tasks = tasks.filter(t => t.id !== currentEditingTask.id);
+                    saveState();
+                    closeModal(taskModal);
+                    showToast('Task deleted!');
+                }
+            });
+        });
+        archiveTaskBtn.addEventListener('click', () => {
+            showInAppConfirmation('Are you sure you want to archive this task?', () => {
+                if (currentEditingTask) {
+                    const task = findTaskById(currentEditingTask.id);
+                    task.isArchived = true;
+                    task.archivedDate = new Date().toISOString();
+                    saveState();
+                    closeModal(taskModal);
+                    showToast('Task archived!');
+                }
+            });
+        });
         addNewCategoryBtn.addEventListener('click', () => openModal(categoryModal));
         addNewPersonBtn.addEventListener('click', () => { activeAssigneeSelect = taskAssigneeSelect; openModal(personModal); });
         
@@ -1359,7 +1501,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         
         // Data management event listeners
         get('exportDataBtn').addEventListener('click', () => {
-            const data = { tasks, categories, people, passwords, websites, notes }; // Include notes in export
+            const data = { tasks, categories, people, passwords, websites, notes };
             const json = JSON.stringify(data, null, 2);
             const blob = new Blob([json], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -1378,36 +1520,33 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         get('importFileInput').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
-            if (!confirm('Are you sure you want to import data? This will overwrite all current data.')) {
-                e.target.value = ''; // Reset file input
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const data = JSON.parse(event.target.result);
-                    // Basic validation
-                    if (data && data.tasks && data.people && data.categories) {
-                        tasks = (data.tasks || []).map(sanitizeTask);
-                        people = data.people || {};
-                        categories = data.categories || {};
-                        passwords = (data.passwords || []).map(sanitizePassword);
-                        websites = (data.websites || []).map(sanitizeWebsite);
-                        notes = (data.notes || []).map(sanitizeNote); // Import notes
-                        saveState();
-                        showToast('Data imported successfully!');
-                        closeModal(settingsModal);
-                    } else {
-                        alert('Invalid data file.');
+            showInAppConfirmation('Are you sure you want to import data? This will overwrite all current data.', () => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        if (data && data.tasks && data.people && data.categories) {
+                            tasks = (data.tasks || []).map(sanitizeTask);
+                            people = data.people || {};
+                            categories = data.categories || {};
+                            passwords = (data.passwords || []).map(sanitizePassword);
+                            websites = (data.websites || []).map(sanitizeWebsite);
+                            notes = (data.notes || []).map(sanitizeNote);
+                            saveState();
+                            showToast('Data imported successfully!');
+                            closeModal(settingsModal);
+                        } else {
+                            showInAppNotification('Invalid data file. Please ensure it is a valid JSON backup.', 'error', get('generalTab'));
+                        }
+                    } catch (err) {
+                        showInAppNotification('Failed to parse data file. Please ensure it is a valid JSON backup.', 'error', get('generalTab'));
+                        console.error("Import error:", err);
+                    } finally {
+                        e.target.value = '';
                     }
-                } catch (err) {
-                    alert('Failed to parse data file. Please ensure it is a valid JSON backup.');
-                    console.error("Import error:", err);
-                } finally {
-                    e.target.value = ''; // Reset file input
-                }
-            };
-            reader.readAsText(file);
+                };
+                reader.readAsText(file);
+            });
         });
 
         get('viewArchivedBtn').addEventListener('click', openArchiveModal);
@@ -1458,7 +1597,6 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             });
         }
         
-        // Listen for changes in notes to auto-save and update UI
         if(notesContainer) {
              notesContainer.addEventListener('input', (e) => {
                  if(e.target.classList.contains('note-title') || e.target.classList.contains('note-body')) {
@@ -1468,14 +1606,11 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                          if(note) {
                              note.title = noteCard.querySelector('.note-title').value;
                              note.body = noteCard.querySelector('.note-body').value;
-                             // This auto-saves, but let's stick to explicit button for now for performance and user control
-                             // saveState();
                          }
                      }
                  }
              });
         }
-
 
         renderAndPopulate();
     };
