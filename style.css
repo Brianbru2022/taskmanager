@@ -26,6 +26,12 @@
     --subtask-color-5: #fef2f2;
     --card-shadow: 0 2px 4px rgba(0,0,0,0.1);
     --modal-backdrop: rgba(0, 0, 0, 0.4);
+    --in-app-notification-info: #e9ecef;
+    --in-app-notification-success: #d4edda;
+    --in-app-notification-error: #f8d7da;
+    --in-app-notification-text-info: #495057;
+    --in-app-notification-text-success: #155724;
+    --in-app-notification-text-error: #721c24;
 }
 
 body[data-theme="dark"] {
@@ -38,6 +44,12 @@ body[data-theme="dark"] {
     --color-border: #444;
     --card-shadow: 0 2px 8px rgba(0,0,0,0.3);
     --modal-backdrop: rgba(0, 0, 0, 0.7);
+    --in-app-notification-info: #333;
+    --in-app-notification-success: #143820;
+    --in-app-notification-error: #4a2528;
+    --in-app-notification-text-info: #a0a0a0;
+    --in-app-notification-text-success: #8ce99a;
+    --in-app-notification-text-error: #ffa8a8;
 }
 
 
@@ -368,7 +380,7 @@ background: var(--modal-backdrop); justify-content: center; align-items: center;
 .modal.is-active { display: flex; opacity: 1; visibility: visible; }
 .modal-content { background-color: var(--color-bg-card); border-radius: var(--border-radius-md); width: 100%; max-height: 90vh;
 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; animation: slideInTop 0.4s ease-out forwards;
-transition: background-color 0.3s; }
+transition: background-color 0.3s; position: relative;}
 .modal-content.modal-sm { max-width: 400px; }
 .modal-content.modal-md { max-width: 600px; }
 .modal-content.modal-lg { max-width: 950px; }
@@ -419,7 +431,7 @@ align-items: center; gap: 0.5rem; font-weight: 500; }
 .sub-task-container.subtask-color-3 { background-color: var(--subtask-color-3); border-color: #8ce99a; }
 .sub-task-container.subtask-color-4 { background-color: var(--subtask-color-4); border-color: #ffd43b;
 }
-.sub-task-container.subtask-color-5 { background-color: var(--subtask-color-5); border-color: #ffa8a8; }
+.sub-task-container.subtask-color-5 { background-color: var(--subtask-color-5); border-color: #fef2f2; }
 .sub-task-header { padding: 0.5rem 1rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
 cursor: pointer; position: relative; }
 .sub-task-toggle { width: 16px; text-align: center; transition: transform 0.2s ease; color: var(--color-text-secondary);
@@ -546,7 +558,7 @@ border-radius: var(--border-radius-sm); }
 font-size: 1rem; cursor: pointer; text-align: left; border-radius: var(--border-radius-md); display: flex; align-items: center; gap: 0.75rem; width: 100%; color: var(--color-text-secondary);
 }
 .settings-tab.active { background-color: var(--color-bg-input); color: var(--color-accent-primary); font-weight: 600; }
-.settings-content { flex-grow: 1; padding: 0 1.5rem; }
+.settings-content { flex-grow: 1; padding: 0 1.5rem; position: relative;}
 .settings-tab-content { display: none;
 }
 .settings-tab-content.active { display: block; animation: fadeIn 0.4s; }
@@ -760,6 +772,49 @@ body[data-theme="dark"] .modal-footer { background-color: #2c2c2c; }
     visibility: visible;
 }
 
+/* In-app Notification */
+.in-app-notification {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.9rem;
+    animation: slideInRight 0.3s ease-out;
+    transition: transform 0.3s, opacity 0.3s;
+    z-index: 10;
+}
+.in-app-notification.hide {
+    opacity: 0;
+    transform: translateX(100%);
+}
+.in-app-notification-info {
+    background-color: var(--in-app-notification-info);
+    color: var(--in-app-notification-text-info);
+}
+.in-app-notification-success {
+    background-color: var(--in-app-notification-success);
+    color: var(--in-app-notification-text-success);
+}
+.in-app-notification-error {
+    background-color: var(--in-app-notification-error);
+    color: var(--in-app-notification-text-error);
+}
+.close-notification-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.7;
+}
+.close-notification-btn:hover {
+    opacity: 1;
+}
+
 /* Print Styles */
 @media print {
     body > *:not(.print-container) { display: none !important;
@@ -801,6 +856,7 @@ input:checked + .slider:before { transform: translateX(26px); }
 
 @keyframes slideInTop { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1;
 } }
+@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 @media (max-width: 1200px) {
