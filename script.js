@@ -172,7 +172,11 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             return sortByDate.value === 'oldest' ? dateA - dateB : dateB - dateA;
         });
         const groupedTasks = KANBAN_STATUSES.reduce((acc, status) => ({ ...acc, [status]: [] }), {});
-        filteredTasks.forEach(task => { if (groupedTasks[task.status]) { groupedTasks[status].push(task); } });
+        filteredTasks.forEach(task => { 
+    if (groupedTasks[task.status]) { 
+        groupedTasks[task.status].push(task); 
+    } 
+});
         kanbanBoard.innerHTML = '';
         const headerColors = { 'Open': '#6c757d', 'In Progress': '#B4975A', 'Closed': '#1E4D2B' };
         const emptyStateMessages = { 'Open': "No open tasks. Let's add one!", 'In Progress': "Nothing in progress. Time to start a task!", 'Closed': "No tasks closed recently." };
