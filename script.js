@@ -44,6 +44,21 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             toast.classList.remove('show');
         }, 2000);
     };
+    // New function for in-app notifications
+    const showInAppNotification = (message, type = 'info', parentElement) => {
+        const notification = document.createElement('div');
+        notification.className = `in-app-notification in-app-notification-${type}`;
+        notification.innerHTML = `<span>${message}</span><button class="close-notification-btn">&times;</button>`;
+        parentElement.prepend(notification);
+        notification.querySelector('.close-notification-btn').addEventListener('click', () => {
+            notification.classList.add('hide');
+            setTimeout(() => notification.remove(), 300);
+        });
+        setTimeout(() => {
+            notification.classList.add('hide');
+            setTimeout(() => notification.remove(), 300);
+        }, 5000);
+    };
 
     // --- DOM ELEMENT SELECTION ---
     const get = (id) => document.getElementById(id);
@@ -576,13 +591,13 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
     const triggerPrint = (reportHTML) => { get('print-container').innerHTML = reportHTML; window.print();
     };
     const generateAssigneeReport = () => { const selectedUsers = Array.from(queryAll('#reportUserSelectionContainer .report-user-checkbox:checked')).map(cb => cb.value);
-    if (selectedUsers.length === 0) return alert('Please select at least one user.');
+    if (selectedUsers.length === 0) return showToast('Please select at least one user.');
     const reportTasks = tasks.filter(task => !task.isArchived && selectedUsers.some(user => getAllAssignees(task).has(user))); 
         triggerPrint(generateReportHTML('Task Report by Assignee', reportTasks)); 
         closeModal(get('reportConfigModal'));
     };
     const generateOverdueReport = () => { const overdueTasks = tasks.filter(task => !task.isArchived && new Date(task.dueDate) < new Date() && !['Closed'].includes(task.status));
-    if (overdueTasks.length === 0) { alert('No overdue tasks found.'); return; } triggerPrint(generateReportHTML('Overdue Tasks Report', overdueTasks)); };
+    if (overdueTasks.length === 0) { showToast('No overdue tasks found.'); return; } triggerPrint(generateReportHTML('Overdue Tasks Report', overdueTasks)); };
     // --- SETTINGS MODAL ---
     const isPersonInUse = (personName) => {
         const checkTasks = (taskList) => {
@@ -627,13 +642,14 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                 li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
                     const name = e.target.dataset.name;
                     if (isPersonInUse(name)) {
-                        alert(`Cannot delete "${name}" as they are currently assigned to one or more tasks.`);
+                        showInAppNotification(`Cannot delete "${name}" as they are currently assigned to one or more tasks.`, 'error', get('peopleTab'));
                         return;
                     }
                     if (confirm(`Are you sure you want to delete "${name}"?`)) {
                         delete people[name];
                         saveState();
                         openSettingsModal();
+                        showInAppNotification(`"${name}" has been deleted.`, 'success', get('peopleTab'));
                     }
                 });
                 peopleList.appendChild(li);
@@ -664,13 +680,14 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                 li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
                     const name = e.target.dataset.name;
                     if (isCategoryInUse(name)) {
-                        alert(`Cannot delete "${name}" as it is currently used by one or more tasks.`);
+                        showInAppNotification(`Cannot delete "${name}" as it is currently used by one or more tasks.`, 'error', get('categoriesTab'));
                         return;
                     }
                     if (confirm(`Are you sure you want to delete the category "${name}"?`)) {
                         delete categories[name];
                         saveState();
                         openSettingsModal();
+                        showInAppNotification(`Category "${name}" has been deleted.`, 'success', get('categoriesTab'));
                     }
                 });
                 categoryList.appendChild(li);
@@ -732,6 +749,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                         passwords = passwords.filter(pwd => pwd.id !== id);
                         saveState();
                         openSettingsModal();
+                        showInAppNotification(`Password for "${p.service}" has been deleted.`, 'success', get('passwordsTab'));
                     }
                 });
                 passwordList.appendChild(li);
@@ -792,6 +810,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                         websites = websites.filter(web => web.id !== id);
                         saveState();
                         openSettingsModal();
+                        showInAppNotification(`Website "${w.service}" has been deleted.`, 'success', get('websitesTab'));
                     }
                 });
                 websiteList.appendChild(li);
@@ -1107,8 +1126,10 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         if (confirm('Are you sure you want to permanently delete this item? This action cannot be undone.')) {
             if (itemType === 'task') {
                 tasks = tasks.filter(t => t.id !== itemId);
+                showInAppNotification('Task deleted permanently.', 'success', get('archiveModal').querySelector('.modal-content'));
             } else if (itemType === 'note') {
                 notes = notes.filter(n => n.id !== itemId);
+                showInAppNotification('Note deleted permanently.', 'success', get('archiveModal').querySelector('.modal-content'));
             }
             saveState();
             openArchiveModal();
@@ -1221,10 +1242,10 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                 people[newName] = generateRandomColor();
                 saveState();
                 openSettingsModal();
-    
+                showInAppNotification(`New person "${newName}" added.`, 'success', get('peopleTab'));
                 settingsPersonNameInput.value = '';
             } else if (people[newName]) {
-                alert(`A person named "${newName}" already exists.`);
+                showInAppNotification(`A person named "${newName}" already exists.`, 'error', get('peopleTab'));
             }
         });
         settingsCategoryForm.addEventListener('submit', (e) => {
@@ -1234,10 +1255,10 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                 categories[newCat] = generateRandomColor();
                 saveState();
                 openSettingsModal();
-    
+                showInAppNotification(`New category "${newCat}" added.`, 'success', get('categoriesTab'));
                 settingsCategoryNameInput.value = '';
             } else if (categories[newCat]) {
-                alert(`A category named "${newCat}" already exists.`);
+                showInAppNotification(`A category named "${newCat}" already exists.`, 'error', get('categoriesTab'));
             }
         });
         settingsPasswordForm.addEventListener('submit', (e) => {
@@ -1254,9 +1275,11 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                     if (password) {
                       
                         Object.assign(password, { service, username, value, link });
+                        showInAppNotification(`Password for "${service}" updated.`, 'success', get('passwordsTab'));
                     }
                 } else { // Adding new
                     passwords.push(sanitizePassword({ service, username, value, link }));
+                    showInAppNotification(`Password for "${service}" added.`, 'success', get('passwordsTab'));
                 }
           
                 saveState();
@@ -1277,9 +1300,11 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                     const website = websites.find(w => w.id === id);
                     if (website) {
                         Object.assign(website, { service, username, value, link });
+                        showInAppNotification(`Website "${service}" updated.`, 'success', get('websitesTab'));
                     }
                 } else { // Adding new
                     websites.push(sanitizeWebsite({ service, username, value, link }));
+                    showInAppNotification(`Website "${service}" added.`, 'success', get('websitesTab'));
                 }
                 saveState();
                 closeModal(get('websiteModal'));
@@ -1305,8 +1330,8 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             openLinkModal(currentEditingTask.id);
         });
         openNewTaskModalBtn.addEventListener('click', () => openTaskModal());
-        deleteTaskBtn.addEventListener('click', () => { if (currentEditingTask && confirm('Delete this task?')) { tasks = tasks.filter(t => t.id !== currentEditingTask.id); saveState(); closeModal(taskModal); } });
-        archiveTaskBtn.addEventListener('click', () => { if (currentEditingTask && confirm('Archive this task?')) { const task = findTaskById(currentEditingTask.id); task.isArchived = true; task.archivedDate = new Date().toISOString(); saveState(); closeModal(taskModal); } });
+        deleteTaskBtn.addEventListener('click', () => { if (currentEditingTask && confirm('Delete this task?')) { tasks = tasks.filter(t => t.id !== currentEditingTask.id); saveState(); closeModal(taskModal); showToast('Task deleted.'); } });
+        archiveTaskBtn.addEventListener('click', () => { if (currentEditingTask && confirm('Archive this task?')) { const task = findTaskById(currentEditingTask.id); task.isArchived = true; task.archivedDate = new Date().toISOString(); saveState(); closeModal(taskModal); showToast('Task archived!'); } });
         addNewCategoryBtn.addEventListener('click', () => openModal(categoryModal));
         addNewPersonBtn.addEventListener('click', () => { activeAssigneeSelect = taskAssigneeSelect; openModal(personModal); });
         
@@ -1397,6 +1422,7 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             
             if (restoreBtn) {
                 restoreArchivedItem(itemId, itemType);
+                showInAppNotification('Item restored successfully.', 'success', get('archiveModal').querySelector('.modal-content'));
             }
 
             if (deleteBtn) {
