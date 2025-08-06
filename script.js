@@ -1103,13 +1103,17 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
 
     const saveNotes = () => {
         const noteCards = queryAll('.note-card');
-        notes = notes.filter(n => n.isArchived);
-        noteCards.forEach(card => {
-            const id = card.dataset.id;
-            const title = card.querySelector('.note-title').value;
-            const body = card.querySelector('.note-body').value;
-            notes.push({ id, title, body, isArchived: false });
+        const activeNotes = notes.filter(n => !n.isArchived); // Only get active notes
+        
+        // Update the content of active notes based on the UI
+        activeNotes.forEach(note => {
+            const card = document.querySelector(`.note-card[data-id="${note.id}"]`);
+            if (card) {
+                note.title = card.querySelector('.note-title').value;
+                note.body = card.querySelector('.note-body').value;
+            }
         });
+        
         saveState();
         showToast('Notes saved successfully!');
     };
