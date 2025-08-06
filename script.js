@@ -61,7 +61,6 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
             setTimeout(() => notification.remove(), 300);
         }, 5000);
     };
-    // Replaced window alert with in-app notification for prompt confirmation
     const showInAppConfirmation = (message, onConfirm) => {
         const modal = document.createElement('div');
         modal.className = 'modal is-active';
@@ -1182,11 +1181,6 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
                 <li><strong>Due This Week</strong>: Number of active tasks with a due date within the next seven days, excluding those due today.</li>
                 <li><strong>Closed</strong>: Total count of all tasks that have been completed.</li>
                 <li><strong>Open Notes</strong>: The count of your active notes that have not been archived.</li>
-            </ul>
-            <h4>Task Lists</h4>
-            <ul>
-                <li><strong>Urgent Tasks</strong>: This list displays all tasks that have been marked as "Urgent" and are not yet closed. They are sorted by their due date, with the oldest appearing first.</li>
-                <li><strong>Upcoming Tasks</strong>: This list shows your top 5 upcoming, non-closed tasks, sorted by their due date.</li>
             </ul>
 
             <h3>2. Task Management (Tasks View)</h3>
