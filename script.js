@@ -1103,9 +1103,8 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
 
     const saveNotes = () => {
         const noteCards = queryAll('.note-card');
-        const activeNotes = notes.filter(n => !n.isArchived); // Only get active notes
+        const activeNotes = notes.filter(n => !n.isArchived);
         
-        // Update the content of active notes based on the UI
         activeNotes.forEach(note => {
             const card = document.querySelector(`.note-card[data-id="${note.id}"]`);
             if (card) {
