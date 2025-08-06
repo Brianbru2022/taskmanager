@@ -1,0 +1,107 @@
+/* Notes View */
+.notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.notes-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.note-card {
+    background-color: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    padding: 1.25rem;
+    box-shadow: var(--card-shadow);
+    display: flex;
+    flex-direction: column;
+    min-height: 250px;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.note-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+body[data-theme="dark"] .note-card:hover {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.note-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.note-card .note-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    color: var(--color-text-primary);
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+.note-card .note-title:focus {
+    outline: none;
+    border-bottom: 1px solid var(--color-accent-primary);
+}
+
+.note-card .note-body {
+    flex-grow: 1;
+    border: none;
+    background: transparent;
+    color: var(--color-text-primary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    padding: 0;
+    width: 100%;
+    resize: none;
+}
+
+.note-card .note-body:focus {
+    outline: none;
+}
+
+.note-card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.note-card .archive-note-btn,
+.note-card .delete-note-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+}
+
+.note-card .archive-note-btn {
+    color: var(--color-accent-warning);
+}
+
+.note-card .delete-note-btn {
+    color: var(--color-accent-danger);
+}
+
+.note-card .archive-note-btn:hover,
+.note-card .delete-note-btn:hover {
+    opacity: 1;
+}
+
+.notes-grid .empty-state {
+    grid-column: 1 / -1;
+}
