@@ -32,7 +32,7 @@
         <div class="main-content">
             <header class="top-bar">
                 <div class="header-content">
-          <h1 id="main-app-heading" class="main-app-heading">Task Management</h1>
+                    <h1 id="main-app-heading" class="main-app-heading">Task Management</h1>
                     <div class="header-actions">
                         <div id="search-container" class="search-container">
                             <i class="fas fa-search"></i>
@@ -111,13 +111,12 @@
             <div id="tasksView" class="view-container" style="display: none;">
                 <div class="kanban-filters">
                     <div class="filter-group"><label for="assigneeFilter">Filter by Assignee</label><select id="assigneeFilter"><option value="all">All Assignees</option></select></div>
-                    <div class="filter-group"><label for="categoryFilter">Filter by Category</label><select
-id="categoryFilter"><option value="all">All Categories</option></select></div>
+                    <div class="filter-group"><label for="categoryFilter">Filter by Category</label><select id="categoryFilter"><option value="all">All Categories</option></select></div>
                     <div class="filter-group"><label for="sortByDate">Sort by Due Date</label><select id="sortByDate"><option value="newest">Newest First</option><option value="oldest" selected>Oldest First</option></select></div>
                     <div class="filter-group"><label for="closedTasksFilter">Closed Tasks</label><select id="closedTasksFilter"><option value="recent">Show Recent (7 days)</option><option value="all">Show All</option></select></div>
                 </div>
                 <main class="kanban-board" id="kanbanBoard"></main>
-         </div>
+            </div>
             
             <div id="notesView" class="view-container" style="display: none;">
                 <h2>My Notes</h2>
@@ -164,15 +163,25 @@ id="categoryFilter"><option value="all">All Categories</option></select></div>
                             <button id="generateOverdueReportBtn" class="btn btn-warning">Generate Report</button>
                         </div>
                     </div>
+                    <!-- NEW: Tasks by Category Report -->
+                    <div class="report-card">
+                        <div class="report-card-icon"><i class="fas fa-layer-group"></i></div>
+                        <h3 class="report-card-title">Tasks by Category</h3>
+                        <p class="report-card-description">All open/in-progress tasks, with subtasks, grouped by category.</p>
+                        <div class="report-card-footer">
+                            <button id="generateCategoryReportBtn" class="btn btn-success">Generate Report</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- All modals, print container, and toast unchanged (your originals) -->
     <div id="taskModal" class="modal">
         <div class="modal-content modal-lg"><header class="modal-header"><h2 id="modalTitle">New Task</h2><button class="close-button">&times;</button></header><form id="taskForm" novalidate><div class="form-body"><div id="manageTaskHeader" style="display: none;"></div><div class="main-task-details"><div class="form-left"><label for="taskName">Task Title</label><input type="text" id="taskName" placeholder="e.g., Design new homepage" required><label for="taskDescription">Description</label><textarea id="taskDescription" rows="8" placeholder="Add a more detailed description..."></textarea><div class="links-section"><h4>Links <button type="button" class="add-link-btn-header" title="Add Link"><i class="fas fa-link"></i></button></h4><ul class="links-list" id="mainTaskLinksList"></ul></div></div><div class="form-right"><label for="taskStatus">Status</label><select id="taskStatus" required><option value="Open">Open</option><option value="In Progress">In Progress</option><option value="Closed">Closed</option></select><div id="progress-container" style="display:
 none;"><label for="taskProgress">% Complete (Optional)</label><input type="number" id="taskProgress" min="0" max="100" placeholder="e.g., 75"></div><label for="taskAssignee">Assignee</label><div class="input-with-button"><select id="taskAssignee" required><option value="" disabled selected>Select...</option></select><button type="button" id="addNewPersonBtn" class="add-icon-btn" title="Add New Person"><i class="fas fa-user-plus"></i></button></div><label for="categorySelect">Category</label><div class="input-with-button"><select id="categorySelect" required><option value="" disabled selected>Select...</option></select><button type="button" id="addNewCategoryBtn" class="add-icon-btn" title="Add New Category"><i class="fas fa-plus"></i></button></div><label for="dueDate">Due Date</label><input type="date" id="dueDate" required><div class="form-group-checkbox"><input type="checkbox" id="taskUrgent"><label for="taskUrgent">Mark as Urgent</label></div></div></div><div id="mainLogControls" class="log-controls" style="display: none;"></div><div id="subTaskSection" style="display: none;"><hr class="section-divider"><h3>Sub-Tasks</h3><div id="subtasksListContainer"></div><div id="addSubTaskFormContainer"></div></div><div id="logSummarySection" style="display: none;"><hr class="section-divider"><h3>Action Log Summary</h3><div class="aggregated-log-container" id="logSummaryContainer"></div></div></div><footer class="modal-footer"><button type="button" id="archiveTaskBtn" class="btn btn-warning" style="display: none;"><i class="fas fa-archive"></i> Archive</button><button type="button" id="deleteTaskBtn" class="btn btn-danger" style="display: none;"><i class="fas fa-trash-alt"></i> Delete</button><div style="flex-grow: 1;"></div><button type="submit" id="saveTaskBtn" class="btn btn-primary"><i class="fas fa-save"></i> Save Task</button></footer></form></div>
- </div>
+     </div>
     <div id="personModal" class="modal"><div class="modal-content modal-sm"><header class="modal-header"><h2>Add New Person</h2><button class="close-button">&times;</button></header><form id="personForm"><div class="form-body"><label for="newPersonName">Person's Full Name</label><input type="text" id="newPersonName" placeholder="e.g., Jane Doe" required></div><footer class="modal-footer"><button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Person</button></footer></form></div></div>
     <div id="categoryModal" class="modal"><div class="modal-content modal-sm"><header class="modal-header"><h2>Add New Category</h2><button class="close-button">&times;</button></header><form id="categoryForm"><div class="form-body"><label for="newCategoryName">Category Name</label><input type="text" id="newCategoryName" placeholder="e.g., Frontend" required></div><footer class="modal-footer"><button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Category</button></footer></form></div></div>
     
