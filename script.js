@@ -644,6 +644,73 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         return checkTasks(tasks);
     };
 
+    // ---- Tasks by Category Report ----
+const generateCategoryReport = () => {
+    // Only include main tasks that are Open or In Progress (not archived)
+    const mainTasks = tasks.filter(
+        t => !t.isArchived && (t.status === 'Open' || t.status === 'In Progress')
+    );
+
+    // Group tasks by category
+    const categoryMap = {};
+    mainTasks.forEach(task => {
+        const cat = task.category || 'Uncategorized';
+        if (!categoryMap[cat]) categoryMap[cat] = [];
+        categoryMap[cat].push(task);
+    });
+
+    // Generate the HTML for the report
+    let reportHTML = `<div class="print-report">
+        <h1>Tasks by Category (Open & In Progress)</h1>
+        <p>Generated on: ${new Date().toLocaleDateString('en-GB')}</p>`;
+
+    Object.entries(categoryMap).forEach(([cat, catTasks]) => {
+        reportHTML += `<h2 style="margin-top:2em;">${cat}</h2>`;
+        reportHTML += `<table class="report-table">
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Status</th>
+                    <th>Assignee</th>
+                    <th>Due Date</th>
+                    <th>Description</th>
+                    <th>Subtasks</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        catTasks.forEach(task => {
+            // Recursively list all subtasks
+            const renderSubtasks = (subs, indent = 0) => {
+                if (!subs || !subs.length) return '';
+                return '<ul>' + subs.map(sub => {
+                    return `<li>
+                        <strong>${'&nbsp;'.repeat(indent * 2)}${sub.name}</strong>
+                        (Status: ${sub.status}, Assignee: ${sub.assignee}, Due: ${formatDateForDisplay(sub.dueDate)}) 
+                        ${sub.description ? `<br><span class="desc">${sub.description}</span>` : ''}
+                        ${sub.subtasks && sub.subtasks.length ? renderSubtasks(sub.subtasks, indent + 1) : ''}
+                    </li>`;
+                }).join('') + '</ul>';
+            };
+
+            reportHTML += `<tr>
+                <td>${task.name}</td>
+                <td>${task.status}</td>
+                <td>${task.assignee}</td>
+                <td>${formatDateForDisplay(task.dueDate)}</td>
+                <td>${task.description || ''}</td>
+                <td>${task.subtasks && task.subtasks.length ? renderSubtasks(task.subtasks) : 'None'}</td>
+            </tr>`;
+        });
+
+        reportHTML += `</tbody></table>`;
+    });
+
+    reportHTML += `</div>`;
+
+    triggerPrint(reportHTML);
+};
+
     const isCategoryInUse = (categoryName) => {
         return tasks.some(task => task.category === categoryName && !task.isArchived);
     };
@@ -1492,7 +1559,8 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         });
         get('generateAssigneeReportBtn').addEventListener('click', generateAssigneeReport);
         get('generateOverdueReportBtn').addEventListener('click', generateOverdueReport);
-
+        get('generateCategoryReportBtn').addEventListener('click', generateCategoryReport);
+        
         [assigneeFilter, categoryFilter, sortByDate, closedTasksFilter].forEach(el => el.addEventListener('change', renderAndPopulate));
         globalSearchInput.addEventListener('input', renderAndPopulate);
         categoryForm.addEventListener('submit', e => { e.preventDefault(); const newCat = newCategoryNameInput.value.trim(); if (newCat && !categories[newCat]) { categories[newCat] = generateRandomColor(); saveState(); categorySelect.value = newCat; } categoryForm.reset(); closeModal(categoryModal); });
