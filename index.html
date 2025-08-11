@@ -6,9 +6,10 @@
     <title>Professional Task Board</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=5.3.6">
-    <link rel="stylesheet" href="sites.css?v=5.3.6">
-    <link rel="stylesheet" href="commercial.css?v=5.3.6">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="sites.css">
+    <link rel="stylesheet" href="commercial.css">
+    <link rel="stylesheet" href="notes.css">
 </head>
 <body>
     <div class="page-wrapper">
@@ -18,6 +19,8 @@
                 <ul>
                  <li class="active"><a href="#" id="homeLink"><i class="fas fa-home"></i> <span>Home</span></a></li>
                     <li><a href="#" id="tasksLink"><i class="fas fa-tasks"></i> <span>Tasks</span></a></li>
+                    <li><a href="#" id="notesLink"><i class="fas fa-clipboard"></i> <span>Notes</span></a></li>
+                    <li><a href="#" id="manualLink"><i class="fas fa-book"></i> <span>Manual</span></a></li>
                     <li><a href="#" id="sitesLink"><i class="fas fa-hard-hat"></i> <span>Sites</span></a></li>
                     <li><a href="#" id="commercialLink"><i class="fas fa-building"></i> <span>Commercial</span></a></li>
                     <li><a href="#" id="reportsLink"><i class="fas fa-chart-bar"></i> <span>Reports</span></a></li>
@@ -29,7 +32,7 @@
         <div class="main-content">
             <header class="top-bar">
                 <div class="header-content">
-          <h1 id="main-app-heading" class="main-app-heading">Task Management</h1>
+                    <h1 id="main-app-heading" class="main-app-heading">Task Management</h1>
                     <div class="header-actions">
                         <div id="search-container" class="search-container">
                             <i class="fas fa-search"></i>
@@ -85,6 +88,13 @@
                             <span id="stat-closed" class="stat-card-value">0</span>
                         </div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-card-icon open" style="background-color: var(--color-accent-secondary);"><i class="fas fa-clipboard"></i></div>
+                        <div class="stat-card-info">
+                            <span class="stat-card-title">Open Notes</span>
+                            <span id="stat-open-notes" class="stat-card-value">0</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="dashboard-columns">
                     <div class="dashboard-section">
@@ -101,13 +111,28 @@
             <div id="tasksView" class="view-container" style="display: none;">
                 <div class="kanban-filters">
                     <div class="filter-group"><label for="assigneeFilter">Filter by Assignee</label><select id="assigneeFilter"><option value="all">All Assignees</option></select></div>
-                    <div class="filter-group"><label for="categoryFilter">Filter by Category</label><select
-id="categoryFilter"><option value="all">All Categories</option></select></div>
+                    <div class="filter-group"><label for="categoryFilter">Filter by Category</label><select id="categoryFilter"><option value="all">All Categories</option></select></div>
                     <div class="filter-group"><label for="sortByDate">Sort by Due Date</label><select id="sortByDate"><option value="newest">Newest First</option><option value="oldest" selected>Oldest First</option></select></div>
                     <div class="filter-group"><label for="closedTasksFilter">Closed Tasks</label><select id="closedTasksFilter"><option value="recent">Show Recent (7 days)</option><option value="all">Show All</option></select></div>
                 </div>
                 <main class="kanban-board" id="kanbanBoard"></main>
-         </div>
+            </div>
+            
+            <div id="notesView" class="view-container" style="display: none;">
+                <h2>My Notes</h2>
+                <div class="notes-actions">
+                    <button id="addNoteBtn" class="btn btn-primary"><i class="fas fa-plus"></i> Add New Note</button>
+                    <button id="saveNotesBtn" class="btn btn-primary"><i class="fas fa-save"></i> Save All Notes</button>
+                </div>
+                <div id="notesContainer" class="notes-grid">
+                    </div>
+            </div>
+
+            <div id="manualView" class="view-container" style="display: none;">
+                <h2>User Manual</h2>
+                <div class="manual-sections" id="manualContent">
+                    </div>
+            </div>
 
             <div id="sitesView" class="view-container" style="display: none;">
                 <h2>Sites</h2>
@@ -138,25 +163,25 @@ id="categoryFilter"><option value="all">All Categories</option></select></div>
                             <button id="generateOverdueReportBtn" class="btn btn-warning">Generate Report</button>
                         </div>
                     </div>
+                    <!-- NEW: Tasks by Category Report -->
+                    <div class="report-card">
+                        <div class="report-card-icon"><i class="fas fa-layer-group"></i></div>
+                        <h3 class="report-card-title">Tasks by Category</h3>
+                        <p class="report-card-description">All open/in-progress tasks, with subtasks, grouped by category.</p>
+                        <div class="report-card-footer">
+                            <button id="generateCategoryReportBtn" class="btn btn-success">Generate Report</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- All modals, print container, and toast unchanged (your originals) -->
     <div id="taskModal" class="modal">
         <div class="modal-content modal-lg"><header class="modal-header"><h2 id="modalTitle">New Task</h2><button class="close-button">&times;</button></header><form id="taskForm" novalidate><div class="form-body"><div id="manageTaskHeader" style="display: none;"></div><div class="main-task-details"><div class="form-left"><label for="taskName">Task Title</label><input type="text" id="taskName" placeholder="e.g., Design new homepage" required><label for="taskDescription">Description</label><textarea id="taskDescription" rows="8" placeholder="Add a more detailed description..."></textarea><div class="links-section"><h4>Links <button type="button" class="add-link-btn-header" title="Add Link"><i class="fas fa-link"></i></button></h4><ul class="links-list" id="mainTaskLinksList"></ul></div></div><div class="form-right"><label for="taskStatus">Status</label><select id="taskStatus" required><option value="Open">Open</option><option value="In Progress">In Progress</option><option value="Closed">Closed</option></select><div id="progress-container" style="display:
-none;"><label for="taskProgress">% Complete (Optional)</label><input type="number" id="taskProgress" min="0" max="100" placeholder="e.g., 75"></div><label for="taskAssignee">Assignee</label><div class="input-with-button"><select id="taskAssignee" required><option value="" disabled selected>Select...</option></select><button type="button" id="addNewPersonBtn" class="add-icon-btn" title="Add New Person"><i class="fas fa-user-plus"></i></button></div><label for="categorySelect">Category</label><div class="input-with-button"><select id="categorySelect" required><option value="" disabled selected>Select...</option></select><button type="button" id="addNewCategoryBtn" class="add-icon-btn" title="Add New Category"><i class="fas fa-plus"></i></button></div><label for="dueDate">Due Date</label><input type="date" id="dueDate" required><div class="form-group-checkbox"><input type="checkbox" id="taskUrgent"><label for="taskUrgent">Mark as Urgent</label></div></div></div><div id="mainLogControls" class="log-controls" style="display: none;"></div>
-<!-- Compact Subtasks Toolbar -->
-<div class="subtasks-toolbar" id="subtasksToolbar" style="display:flex;align-items:center;gap:.5rem;margin:.5rem 0;">
-  <label class="switch">
-    <input type="checkbox" id="toggleCompactSubtasks">
-    <span class="slider"></span>
-  </label>
-  <label for="toggleCompactSubtasks" class="switch-text">Compact outline</label>
-</div>
-
-<div id="subTaskSection" style="display: none;"><hr class="section-divider"><h3>Sub-Tasks</h3><div id="subtasksListContainer"></div><div id="addSubTaskFormContainer"></div></div><div id="logSummarySection" style="display: none;"><hr class="section-divider"><h3>Action Log Summary</h3><div class="aggregated-log-container" id="logSummaryContainer"></div></div></div><footer class="modal-footer"><button type="button" id="archiveTaskBtn" class="btn btn-warning" style="display: none;"><i class="fas fa-archive"></i> Archive</button><button type="button" id="deleteTaskBtn" class="btn btn-danger" style="display: none;"><i class="fas fa-trash-alt"></i> Delete</button><div style="flex-grow: 1;"></div><button type="submit" id="saveTaskBtn" class="btn btn-primary"><i class="fas fa-save"></i> Save Task</button></footer></form></div>
- </div>
+none;"><label for="taskProgress">% Complete (Optional)</label><input type="number" id="taskProgress" min="0" max="100" placeholder="e.g., 75"></div><label for="taskAssignee">Assignee</label><div class="input-with-button"><select id="taskAssignee" required><option value="" disabled selected>Select...</option></select><button type="button" id="addNewPersonBtn" class="add-icon-btn" title="Add New Person"><i class="fas fa-user-plus"></i></button></div><label for="categorySelect">Category</label><div class="input-with-button"><select id="categorySelect" required><option value="" disabled selected>Select...</option></select><button type="button" id="addNewCategoryBtn" class="add-icon-btn" title="Add New Category"><i class="fas fa-plus"></i></button></div><label for="dueDate">Due Date</label><input type="date" id="dueDate" required><div class="form-group-checkbox"><input type="checkbox" id="taskUrgent"><label for="taskUrgent">Mark as Urgent</label></div></div></div><div id="mainLogControls" class="log-controls" style="display: none;"></div><div id="subTaskSection" style="display: none;"><hr class="section-divider"><h3>Sub-Tasks</h3><div id="subtasksListContainer"></div><div id="addSubTaskFormContainer"></div></div><div id="logSummarySection" style="display: none;"><hr class="section-divider"><h3>Action Log Summary</h3><div class="aggregated-log-container" id="logSummaryContainer"></div></div></div><footer class="modal-footer"><button type="button" id="archiveTaskBtn" class="btn btn-warning" style="display: none;"><i class="fas fa-archive"></i> Archive</button><button type="button" id="deleteTaskBtn" class="btn btn-danger" style="display: none;"><i class="fas fa-trash-alt"></i> Delete</button><div style="flex-grow: 1;"></div><button type="submit" id="saveTaskBtn" class="btn btn-primary"><i class="fas fa-save"></i> Save Task</button></footer></form></div>
+     </div>
     <div id="personModal" class="modal"><div class="modal-content modal-sm"><header class="modal-header"><h2>Add New Person</h2><button class="close-button">&times;</button></header><form id="personForm"><div class="form-body"><label for="newPersonName">Person's Full Name</label><input type="text" id="newPersonName" placeholder="e.g., Jane Doe" required></div><footer class="modal-footer"><button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Person</button></footer></form></div></div>
     <div id="categoryModal" class="modal"><div class="modal-content modal-sm"><header class="modal-header"><h2>Add New Category</h2><button class="close-button">&times;</button></header><form id="categoryForm"><div class="form-body"><label for="newCategoryName">Category Name</label><input type="text" id="newCategoryName" placeholder="e.g., Frontend" required></div><footer class="modal-footer"><button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Category</button></footer></form></div></div>
     
@@ -214,9 +239,9 @@ none;"><label for="taskProgress">% Complete (Optional)</label><input type="numbe
                             </div>
                         </div>
                          <div class="settings-section">
-                            <h4>Archived Tasks</h4>
+                            <h4>Archived Tasks & Notes</h4>
                             <div class="data-actions">
-                                <button id="viewArchivedBtn" class="btn btn-secondary"><i class="fas fa-archive"></i> View Archived Tasks</button>
+                                <button id="viewArchivedBtn" class="btn btn-secondary"><i class="fas fa-archive"></i> View Archived</button>
                             </div>
                         </div>
                     </div>
@@ -250,20 +275,18 @@ none;"><label for="taskProgress">% Complete (Optional)</label><input type="numbe
              </div>
                     <div id="aboutTab" class="settings-tab-content">
                         <h3>About</h3>
-                        <p><strong>Version:</strong> <span class="version-badge">5.3.6</span></p>
+                        <p><strong>Version:</strong> <span class="version-badge">5.5</span></p>
                         <h4>Changelog:</h4>
                         <ul>
-                            <li><strong>v5.3.6 (Current):</strong> Hotfix: restored card click; removed risky global toggle code; compact mode now modal-only.</li>
-                            <li><strong>v5.3.5 (Current):</strong> Compact toggle now forces re-render; slider clicks handled; table view should switch immediately.</li>
-                            <li><strong>v5.3.4 (Current):</strong> Compact Sub-Tasks table mode with inline editing; reliable toggle; safety fix so task cards still open.</li>
-                            <li><strong>v5.1 (Current):</strong> Fixed "Due Today" dashboard count and added category labels to dashboard task lists.</li>
-                            <li><strong>v5.0 (2025-08-01):</strong> Implemented a dynamic Dashboard on the Home screen.</li>
-                            <li><strong>v4.1 (2025-08-01):</strong> Created a professional Reports Dashboard screen.</li>
-                            <li><strong>v4.0 (2025-08-01):</strong> Implemented modular file structure for future features (Sites, Commercial).</li>
-                            <li><strong>v3.0 (2025-08-01):</strong> Implemented Dark Mode, Data Backup/Restore, and an Archived Tasks viewer. Added a global search bar.</li>
-                            <li><strong>v2.1 (2025-08-01):</strong> Fixed UI spacing for settings forms and overdue task labels.</li>
-                            <li><strong>v2.0 (2025-08-01):</strong> Added 'About' section with versioning. Adjusted UI spacing.</li>
-                            <li><strong>v1.0 (2025-07-31):</strong> Initial release with core task management features.</li>
+                            <li><strong>v5.5 (Current):</strong> Replaced all remaining window alerts/confirms with in-app notifications and confirmations. Fixed bug with note deletion.</li>
+                            <li><strong>v5.4:</strong> Added a user manual page to the sidebar.</li>
+                            <li><strong>v5.3:</strong> Implemented a Notes section with archiving and integrated open note count into the dashboard.</li>
+                            <li><strong>v5.2:</strong> Fixed dashboard logic for "Due Today" count and added category labels to task lists.</li>
+                            <li><strong>v5.1:</strong> Fixed "Due Today" dashboard count and added category labels to dashboard task lists.</li>
+                            <li><strong>v5.0:</strong> Implemented a dynamic Dashboard on the Home screen.</li>
+                            <li><strong>v4.1:</strong> Created a professional Reports Dashboard screen.</li>
+                            <li><strong>v4.0:</strong> Implemented modular file structure for future features (Sites, Commercial).</li>
+                            <li><strong>v3.0:</strong> Implemented Dark Mode, Data Backup/Restore, and an Archived Tasks viewer. Added a global search bar.</li>
                         </ul>
                     </div>
                 </div>
@@ -274,11 +297,18 @@ none;"><label for="taskProgress">% Complete (Optional)</label><input type="numbe
     <div id="archiveModal" class="modal">
         <div class="modal-content modal-lg">
             <header class="modal-header">
-                <h2>Archived Tasks</h2>
+                <h2>Archived Items</h2>
                 <button class="close-button">&times;</button>
             </header>
             <div class="form-body">
-                <ul id="archivedTasksList" class="settings-list"></ul>
+                <div class="archived-section">
+                    <h3>Archived Tasks</h3>
+                    <ul id="archivedTasksList" class="settings-list"></ul>
+                </div>
+                <div class="archived-section">
+                    <h3>Archived Notes</h3>
+                    <ul id="archivedNotesList" class="settings-list"></ul>
+                </div>
             </div>
         </div>
     </div>
@@ -352,5 +382,6 @@ clipboard!</div>
     <script src="script.js"></script>
     <script src="sites.js"></script>
     <script src="commercial.js"></script>
+    <script src="notes.js"></script>
 </body>
 </html>
