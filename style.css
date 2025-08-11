@@ -810,3 +810,12 @@ border-bottom: 1px solid var(--color-border); padding-right: 0; padding-bottom: 
 .compact-row .row-actions button:hover { opacity: 1; }
 .subtasks-toolbar { display:flex; align-items:center; gap:.5rem; margin: 0 0 .5rem 0; }
 .subtasks-toolbar .switch { display:flex; align-items:center; gap:.35rem; font-size:.9rem; }
+
+/* Toggle Switch visuals for subtasks toolbar */
+.switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch .slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#ccc; border-radius:24px; transition:.2s; }
+.switch .slider:before { position:absolute; content:""; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
+.switch input:checked + .slider { background: var(--color-accent-primary, #1E4D2B); }
+.switch input:checked + .slider:before { transform: translateX(26px); }
+.subtasks-toolbar .switch-text { user-select:none; }
