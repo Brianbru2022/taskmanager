@@ -152,7 +152,7 @@ none;"><label for="taskProgress">% Complete (Optional)</label><input type="numbe
         <input type="checkbox" id="toggleCompactSubtasks">
         <span class="slider"></span>
       </label>
-      <span class="switch-text">Compact outline</span>
+      <label for="toggleCompactSubtasks" class="switch-text">Compact outline</label>
     </div>
 <div id="subTaskSection" style="display: none;"><hr class="section-divider"><h3>Sub-Tasks</h3><div id="subtasksListContainer"></div><div id="addSubTaskFormContainer"></div></div><div id="logSummarySection" style="display: none;"><hr class="section-divider"><h3>Action Log Summary</h3><div class="aggregated-log-container" id="logSummaryContainer"></div></div></div><footer class="modal-footer"><button type="button" id="archiveTaskBtn" class="btn btn-warning" style="display: none;"><i class="fas fa-archive"></i> Archive</button><button type="button" id="deleteTaskBtn" class="btn btn-danger" style="display: none;"><i class="fas fa-trash-alt"></i> Delete</button><div style="flex-grow: 1;"></div><button type="submit" id="saveTaskBtn" class="btn btn-primary"><i class="fas fa-save"></i> Save Task</button></footer></form></div>
  </div>
@@ -249,9 +249,10 @@ none;"><label for="taskProgress">% Complete (Optional)</label><input type="numbe
              </div>
                     <div id="aboutTab" class="settings-tab-content">
                         <h3>About</h3>
-                        <p><strong>Version:</strong> <span class="version-badge">5.1</span></p>
+                        <p><strong>Version:</strong> <span class="version-badge">5.2</span></p>
                         <h4>Changelog:</h4>
                         <ul>
+                            <li><strong>v5.2 (Current):</strong> Added compact Sub-Tasks outline view with toggle in task modal; inline status updates; quick-add; performance improvements for deep hierarchies.</li>
                             <li><strong>v5.1 (Current):</strong> Fixed "Due Today" dashboard count and added category labels to dashboard task lists.</li>
                             <li><strong>v5.0 (2025-08-01):</strong> Implemented a dynamic Dashboard on the Home screen.</li>
                             <li><strong>v4.1 (2025-08-01):</strong> Created a professional Reports Dashboard screen.</li>
