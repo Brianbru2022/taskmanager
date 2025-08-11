@@ -414,7 +414,7 @@ taskProgressInput.value = task.progress || '';
             [deleteTaskBtn, archiveTaskBtn, subTaskSection, mainLogControls, logSummarySection].forEach(el => el.style.display = 'block');
 subtasksListContainer.innerHTML = '';
 ensureCompactToolbar();
-/* compact re-eval */ if (document.getElementById('toggleCompactSubtasks')) { document.getElementById('toggleCompactSubtasks').dispatchEvent(new Event('input')); }
+
 
 if (document.getElementById('toggleCompactSubtasks') && document.getElementById('toggleCompactSubtasks').checked) {
   subtasksListContainer.appendChild(renderCompactSubtasksTable(task));
@@ -1337,8 +1337,24 @@ function ensureCompactToolbar(){
   const tb = document.getElementById('subtasksToolbar');
   const cb = document.getElementById('toggleCompactSubtasks');
   if (!tb || !cb) return;
-  // init from storage
   try { cb.checked = localStorage.getItem('compactSubtasksEnabled') === '1'; } catch(e){}
+  if (!cb.dataset.wired){
+    cb.addEventListener('change', ()=>{
+      try { localStorage.setItem('compactSubtasksEnabled', cb.checked ? '1' : '0'); } catch(e){}
+      openTaskModal(currentEditingTask.id);
+    });
+    tb.addEventListener('click', (e)=>{
+      const clickedSwitch = e.target.closest && e.target.closest('.switch');
+      const clickedText = e.target.classList && e.target.classList.contains('switch-text');
+      if (clickedSwitch || clickedText){
+        cb.checked = !cb.checked;
+        cb.dispatchEvent(new Event('change', {bubbles:true}));
+        e.preventDefault();
+      }
+    });
+    cb.dataset.wired = '1';
+  }
+} catch(e){}
   if (!cb.dataset.wired){
     cb.addEventListener('change', ()=>{
       try { localStorage.setItem('compactSubtasksEnabled', cb.checked ? '1' : '0'); } catch(e){}
