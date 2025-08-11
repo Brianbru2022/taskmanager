@@ -413,9 +413,15 @@ taskProgressInput.value = task.progress || '';
 
             [deleteTaskBtn, archiveTaskBtn, subTaskSection, mainLogControls, logSummarySection].forEach(el => el.style.display = 'block');
 subtasksListContainer.innerHTML = '';
-            (task.subtasks || []).forEach((sub, index) => subtasksListContainer.appendChild(renderSubTask(sub, index)));
-            addSubTaskFormContainer.innerHTML = '';
-            addSubTaskFormContainer.appendChild(createSubtaskForm(task));
+ensureCompactToolbar();
+if (get('toggleCompactSubtasks') && get('toggleCompactSubtasks').checked) {
+  subtasksListContainer.appendChild(renderCompactSubtasksTable(task));
+  addSubTaskFormContainer.innerHTML = '';
+} else {
+  (task.subtasks || []).forEach((sub, index) => subtasksListContainer.appendChild(renderSubTask(sub, index)));
+  addSubTaskFormContainer.innerHTML = '';
+  addSubTaskFormContainer.appendChild(createSubtaskForm(task));
+}
             mainLogControls.innerHTML = '';
             mainLogControls.appendChild(createLogControls(task));
             renderLogSummary(task);
@@ -1206,23 +1212,138 @@ queryAll('.modal').forEach(modal => { modal.addEventListener('click', e => { if 
     };
 initialize();
 })();
+// === Compact Subtasks: utilities ===
+const __compactPrefKey = 'compactSubtasksEnabled';
+function isCompactEnabled(){ try { return localStorage.getItem(__compactPrefKey)==='1'; } catch(e){ return false; } }
+function setCompactEnabled(v){ try { localStorage.setItem(__compactPrefKey, v?'1':'0'); } catch(e){} }
+function escapeHtml(str){ return (str||'').replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[s]); }
 
-/* subtasksToolbar global click handler */
-(function(){
-  const tb = get && get('subtasksToolbar');
-  if (!tb || tb.dataset.globalClick) return;
-  tb.addEventListener('click', (e) => {
-    const cb = get('toggleCompactSubtasks');
-    if (!cb) return;
-    const clickedSwitch = e.target.closest && e.target.closest('.switch');
-    const clickedText = e.target.classList && e.target.classList.contains('switch-text');
-    if (clickedSwitch || clickedText) {
-      cb.checked = !cb.checked;
-      const ev = new Event('change', { bubbles: true });
-      cb.dispatchEvent(ev);
-      e.preventDefault();
-      e.stopPropagation();
-    }
+// === Compact Subtasks TABLE Renderer ===
+function renderCompactSubtasksTable(task){
+  const container = document.createElement('div');
+  container.className = 'compact-subtasks';
+  const table = document.createElement('table');
+  table.className = 'compact-table';
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th style="width:40%;">Title</th>
+        <th>Assignee</th>
+        <th>Due</th>
+        <th>Status</th>
+        <th style="text-align:right;">Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+      <tr class="quick-add-row">
+        <td><input class="qa-title" type="text" placeholder="Add sub-task..."></td>
+        <td>
+          <select class="qa-assign">
+            <option value="" disabled selected>Assignee...</option>
+            ${Object.keys(people).sort().map(p => `<option value="${p}">${p}</option>`).join('')}
+          </select>
+        </td>
+        <td><input class="qa-due" type="date"></td>
+        <td>
+          <select class="qa-status">${KANBAN_STATUSES.map(s => `<option value="${s}" ${s==='Open'?'selected':''}>${s}</option>`).join('')}</select>
+        </td>
+        <td style="text-align:right;"><button type="button" class="btn btn-primary qa-add"><i class="fas fa-plus"></i></button></td>
+      </tr>
+    </tfoot>`;
+  const tbody = table.querySelector('tbody');
+
+  const addRow = (node, level=0, parent=null) => {
+    if (node.status === 'Closed') return;
+    const tr = document.createElement('tr');
+    tr.dataset.id = node.id;
+    tr.innerHTML = `
+      <td class="cell-title">
+        <span class="tree-indent" style="padding-left:${level*16}px"></span>
+        <input class="cell-title-input" type="text" value="${escapeHtml(node.name)}">
+      </td>
+      <td class="cell-assign">
+        <div class="assignee">
+          <div class="card-assignee-icon" style="background-color:${people[node.assignee]||'#ccc'}" title="${node.assignee||''}">${getInitials(node.assignee||'')}</div>
+          <select class="cell-assign-select">
+            ${Object.keys(people).sort().map(p => `<option value="${p}" ${node.assignee===p?'selected':''}>${p}</option>`).join('')}
+          </select>
+        </div>
+      </td>
+      <td class="cell-due"><input class="cell-due-input" type="date" value="${(node.dueDate||'').split('T')[0]||node.dueDate||''}"></td>
+      <td class="cell-status">
+        <select class="cell-status-select">${KANBAN_STATUSES.map(s => `<option value="${s}" ${node.status===s?'selected':''}>${s}</option>`).join('')}</select>
+      </td>
+      <td class="cell-actions" style="text-align:right; white-space:nowrap;">
+        <button class="row-btn add-child" title="Add child"><i class="fas fa-level-down-alt" style="transform:rotate(90deg);"></i></button>
+        <button class="row-btn add-sibling" title="Add sibling"><i class="fas fa-plus"></i></button>
+        <button class="row-btn open-full" title="Open details"><i class="fas fa-external-link-alt"></i></button>
+        <button class="row-btn delete" title="Delete"><i class="fas fa-trash"></i></button>
+      </td>`;
+
+    tr.querySelector('.cell-title-input').addEventListener('blur', (e)=>{
+      const v = e.target.value.trim(); if (v && v !== node.name) { node.name = v; saveState(); }
+    });
+    tr.querySelector('.cell-assign-select').addEventListener('change', (e)=>{
+      node.assignee = e.target.value; saveState(); openTaskModal(currentEditingTask.id); const t=get('toggleCompactSubtasks'); if(t) t.checked=true;
+    });
+    tr.querySelector('.cell-due-input').addEventListener('change', (e)=>{ node.dueDate = e.target.value; saveState(); });
+    tr.querySelector('.cell-status-select').addEventListener('change', (e)=>{
+      node.status = e.target.value; if (node.status==='Closed') node.closedDate=new Date().toISOString(); saveState(); openTaskModal(currentEditingTask.id); const t=get('toggleCompactSubtasks'); if(t) t.checked=true;
+    });
+
+    tr.querySelector('.open-full').addEventListener('click', ()=>{ expandedSubtasks.add(node.id); saveState(); openTaskModal(currentEditingTask.id); const t=get('toggleCompactSubtasks'); if(t) t.checked=false; });
+    tr.querySelector('.delete').addEventListener('click', ()=>{
+      if (!confirm('Delete this sub-task?')) return;
+      const arr = parent ? parent.subtasks : currentEditingTask.subtasks;
+      const idx = arr.indexOf(node); if (idx>-1) arr.splice(idx,1);
+      saveState(); openTaskModal(currentEditingTask.id); const t=get('toggleCompactSubtasks'); if(t) t.checked=true;
+    });
+    tr.querySelector('.add-child').addEventListener('click', ()=>{
+      node.subtasks = node.subtasks || [];
+      node.subtasks.push({ id:getNextId('SUB'), name:'New sub-task', description:'', assignee:Object.keys(people)[0]||'', dueDate:new Date().toISOString().split('T')[0], status:'Open', subtasks:[], log:[], links:[] });
+      saveState(); openTaskModal(currentEditingTask.id); const t=get('toggleCompactSubtasks'); if(t) t.checked=true;
+    });
+    tr.querySelector('.add-sibling').addEventListener('click', ()=>{
+      const arr = parent ? parent.subtasks : currentEditingTask.subtasks;
+      const pos = arr.indexOf(node);
+      arr.splice(pos+1,0,{ id:getNextId('SUB'), name:'New sub-task', description:'', assignee:Object.keys(people)[0]||'', dueDate:new Date().toISOString().split('T')[0], status:'Open', subtasks:[], log:[], links:[] });
+      saveState(); openTaskModal(currentEditingTask.id); const t=get('toggleCompactSubtasks'); if(t) t.checked=true;
+    });
+
+    tbody.appendChild(tr);
+    (node.subtasks||[]).forEach(child => addRow(child, level+1, node));
+  };
+
+  (task.subtasks||[]).forEach(st => addRow(st, 0, null));
+  table.querySelector('.qa-add').addEventListener('click', ()=>{
+    const title = table.querySelector('.qa-title').value.trim();
+    const assign = table.querySelector('.qa-assign').value;
+    const due = table.querySelector('.qa-due').value;
+    const status = table.querySelector('.qa-status').value;
+    if(!title || !assign || !due){ alert('Please fill title, assignee, and due date.'); return; }
+    task.subtasks = task.subtasks || [];
+    task.subtasks.push({ id:getNextId('SUB'), name:title, description:'', assignee:assign, dueDate:due, status, subtasks:[], log:[], links:[] });
+    saveState(); openTaskModal(task.id); const t=get('toggleCompactSubtasks'); if(t) t.checked=true;
   });
-  tb.dataset.globalClick = '1';
-})();
+
+  container.appendChild(table);
+  return container;
+}
+
+function ensureCompactToolbar(){
+  const tb = get('subtasksToolbar');
+  const cb = get('toggleCompactSubtasks');
+  if (!tb || !cb) return;
+  cb.checked = isCompactEnabled();
+  if (!cb.dataset.wired){
+    cb.addEventListener('change', ()=>{ setCompactEnabled(cb.checked); openTaskModal(currentEditingTask.id); });
+    tb.addEventListener('click', (e)=>{
+      if (e.target.classList && e.target.classList.contains('switch-text')){
+        cb.checked = !cb.checked;
+        cb.dispatchEvent(new Event('change', {bubbles:true}));
+      }
+    });
+    cb.dataset.wired = '1';
+  }
+}
