@@ -1,1371 +1,894 @@
-(() => {
-    // --- STATE MANAGEMENT ---
-    let tasks = []; let categories = {}; let people = {}; let passwords = []; let websites = []; let activeAssigneeSelect = null; let expandedSubtasks = new Set();
-    const KANBAN_STATUSES = ['Open', 'In Progress', 'Closed'];
-    const SUBTASK_COLORS = ['subtask-color-1', 'subtask-color-2', 'subtask-color-3', 'subtask-color-4', 'subtask-color-5'];
-    let currentEditingTask = null;
-    let currentLinkTask = null;
+/* Importing professional fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-    // --- UTILITY & HELPER FUNCTIONS ---
-    const saveState = () => { localStorage.setItem('tasks', JSON.stringify(tasks)); localStorage.setItem('categories', JSON.stringify(categories)); localStorage.setItem('people', JSON.stringify(people)); localStorage.setItem('passwords',
-JSON.stringify(passwords)); localStorage.setItem('websites', JSON.stringify(websites)); renderAndPopulate(); };
-    const generateRandomColor = () => `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`;
-    const getInitials = (name) => (name || '').split(' ').map(n => n[0]).join('').toUpperCase();
-    const getNextId = (prefix = 'TASK') => `${prefix}-${Date.now()}`;
-const formatDate = (isoDate) => isoDate ? new Date(isoDate).toLocaleString('en-GB') : 'N/A';
-    const formatDateForDisplay = (isoDate) => isoDate ?
-new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A';
-    const renderAndPopulate = () => { renderKanbanBoard(); populateAllDropdowns();
-};
-    const addWeekdays = (date, days) => {
-        let newDate = new Date(date);
-let addedDays = 0;
-        while (addedDays < days) {
-            newDate.setDate(newDate.getDate() + 1);
-const dayOfWeek = newDate.getDay();
-            if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0 = Sunday, 6 = Saturday
-                addedDays++;
-}
-        }
-        return newDate;
-    };
-const showToast = (message) => {
-        const toast = get('copy-toast');
-        toast.textContent = message;
-toast.classList.add('show');
-        setTimeout(() => {
-            toast.classList.remove('show');
-        }, 2000);
-};
-
-    // --- DOM ELEMENT SELECTION ---
-    const get = (id) => document.getElementById(id);
-const queryAll = (selector) => document.querySelectorAll(selector);
-    const kanbanBoard = get('kanbanBoard'), openNewTaskModalBtn = get('openNewTaskModalBtn'), assigneeFilter = get('assigneeFilter'), categoryFilter = get('categoryFilter'), sortByDate = get('sortByDate'), closedTasksFilter = get('closedTasksFilter'), taskModal = get('taskModal'), taskForm = get('taskForm'), modalTitle = get('modalTitle'), manageTaskHeader = get('manageTaskHeader'), taskNameInput = get('taskName'), taskDescriptionInput = get('taskDescription'), dueDateInput = get('dueDate'), taskUrgentInput = get('taskUrgent'), taskAssigneeSelect = get('taskAssignee'), categorySelect = get('categorySelect'), taskStatusSelect = get('taskStatus'), taskProgressInput = get('taskProgress'), progressContainer = get('progress-container'), deleteTaskBtn = get('deleteTaskBtn'), archiveTaskBtn = get('archiveTaskBtn'), addNewCategoryBtn = get('addNewCategoryBtn'), categoryModal = get('categoryModal'), categoryForm = get('categoryForm'), newCategoryNameInput = get('newCategoryName'), addNewPersonBtn = get('addNewPersonBtn'), personModal = get('personModal'), personForm = get('personForm'), newPersonNameInput = get('newPersonName'), subTaskSection = get('subTaskSection'), subtasksListContainer = get('subtasksListContainer'),
-addSubTaskFormContainer = get('addSubTaskFormContainer'), mainLogControls = get('mainLogControls'), logSummarySection = get('logSummarySection'), logSummaryContainer = get('logSummaryContainer'), reportsLink = get('reportsLink'), settingsBtn = get('settingsBtn'), settingsModal = get('settingsModal'), peopleList = get('peopleList'), categoryList = get('categoryList'), settingsPersonForm = get('settingsPersonForm'), settingsCategoryForm = get('settingsCategoryForm'), settingsPersonNameInput = get('settingsPersonName'), settingsCategoryNameInput = get('settingsCategoryName'), passwordList = get('passwordList'), settingsPasswordForm = get('settingsPasswordForm'), settingsPasswordServiceInput = get('settingsPasswordService'), settingsPasswordUsernameInput = get('settingsPasswordUsername'), settingsPasswordValueInput = get('settingsPasswordValue'), openPasswordModalBtn = get('openPasswordModalBtn'), passwordModal = get('passwordModal'), passwordModalTitle = get('passwordModalTitle'), passwordIdInput = get('passwordId'), settingsPasswordLinkInput = get('settingsPasswordLink'), linkModal = get('linkModal'), linkForm = get('linkForm'), linkNameInput = get('linkName'), linkUrlInput
-= get('linkUrl'), existingLinksList = get('existingLinksList'), websiteList = get('websiteList'), openWebsiteModalBtn = get('openWebsiteModalBtn'), websiteModal = get('websiteModal'), globalSearchInput = get('globalSearchInput');
-
-    // --- DATA SANITIZATION & INITIAL LOAD ---
-    const sanitizeTask = (task) => { const defaults = { name: 'Untitled', description: '', dueDate: new Date().toISOString().split('T')[0], assignee: null, category: 'Uncategorized', status: 'Open', subtasks: [], log: [], isArchived: false, isUrgent: false, closedDate: null, progress: null, links: [], archivedDate: null };
-const sanitized = { ...defaults, ...task }; sanitized.subtasks = (sanitized.subtasks || []).map(sub => ({...defaults, ...sub})); return sanitized; };
-const sanitizePassword = (p) => ({ id: getNextId('PWD'), service: 'Untitled', username: '', value: '', link: '', ...p });
-    const sanitizeWebsite = (w) => ({ id: getNextId('WEB'), service: 'Untitled', username: '', value: '', link: '', ...w });
-const loadData = () => { try { tasks = (JSON.parse(localStorage.getItem('tasks')) || []).map(sanitizeTask); categories = JSON.parse(localStorage.getItem('categories')) || {};
-people = JSON.parse(localStorage.getItem('people')) || {}; passwords = (JSON.parse(localStorage.getItem('passwords')) || []).map(sanitizePassword);
-        websites = (JSON.parse(localStorage.getItem('websites')) || []).map(sanitizeWebsite);
-} catch (error) { console.error("Failed to load data, starting fresh.", error); localStorage.clear(); } };
-const addSampleData = () => { if (tasks.length > 0 || Object.keys(people).length > 0) return;
-people = { 'Alice Johnson': '#0d6efd', 'Bob Smith': '#dc3545', 'Charlie Brown': '#ffc107', 'Diana Prince': '#6f42c1' };
-categories = { 'Design': '#20c997', 'Backend': '#fd7e14', 'DevOps': '#6610f2', 'Frontend': '#0dcaf0' };
-const sampleTasks = [ { id: 'TASK-1', name: 'Design Homepage Mockups', description: 'Create high-fidelity mockups for the new homepage in Figma.', dueDate: '2025-08-20', assignee: 'Alice Johnson', category: 'Design', status: 'In Progress', isUrgent: true, progress: 75, links: [{name: "Figma Mockup", url: "https://figma.com"}] }, { id: 'TASK-2', name: 'Setup Production Server', description: 'Configure AWS EC2 instance and RDS for production deployment.', dueDate: new Date().toISOString().split('T')[0], assignee: 'Diana Prince', category: 'DevOps', status: 'Open', subtasks: [ { id: 'SUB-1', name: 'Install Nginx', description: 'Set up the web server.', assignee: 'Diana Prince', dueDate: new Date().toISOString().split('T')[0], status: 'Open', links: [] } ], links: [] }, { id:
-'TASK-3', name: 'Fix Login Bug', description: 'Users are redirected to the wrong page after login.', dueDate: '2025-07-20', assignee: 'Charlie Brown', category: 'Frontend', status: 'Open', links: [] } ];
-tasks = sampleTasks.map(sanitizeTask); saveState(); };
-
-    // --- DRAG AND DROP HANDLERS ---
-    const handleDragStart = (e) => { e.dataTransfer.setData('text/plain', e.target.dataset.id);
-setTimeout(() => e.target.classList.add('dragging'), 0); };
-    const handleDragEnd = (e) => e.target.classList.remove('dragging');
-    const handleDragOver = (e) => { e.preventDefault(); e.currentTarget.classList.add('drag-over'); };
-const handleDragLeave = (e) => e.currentTarget.classList.remove('drag-over');
-    const handleDrop = (e) => {
-        e.preventDefault();
-e.currentTarget.classList.remove('drag-over');
-        const taskId = e.dataTransfer.getData('text/plain');
-        const newStatus = e.currentTarget.dataset.status;
-        const task = findTaskById(taskId);
-if (task && task.status !== newStatus) {
-            task.status = newStatus;
-if (newStatus === 'Closed') {
-                task.closedDate = new Date().toISOString();
-logAction(task, `Task status changed to Closed.`);
-            } else {
-                task.closedDate = null;
-}
-            saveState();
-        }
-    };
-// --- CORE RENDERING ---
-    const renderKanbanBoard = () => {
-        const searchTerm = globalSearchInput.value.toLowerCase();
-        const activeTasks = tasks.filter(t => !t.isArchived);
-let filteredTasks = activeTasks;
-        
-        if (searchTerm) {
-            filteredTasks = activeTasks.filter(t => t.name.toLowerCase().includes(searchTerm) || t.description.toLowerCase().includes(searchTerm));
-        } else {
-            if (assigneeFilter.value !== 'all') filteredTasks = filteredTasks.filter(t => getAllAssignees(t).has(assigneeFilter.value));
-if (categoryFilter.value !== 'all') filteredTasks = filteredTasks.filter(t => t.category === categoryFilter.value);
-        
-            const showAllClosed = closedTasksFilter.value === 'all';
-const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-            filteredTasks = filteredTasks.filter(task => {
-                if (task.status !== 'Closed') return true;
-                if (showAllClosed) return true;
-                return task.closedDate && new Date(task.closedDate) > sevenDaysAgo;
-            });
-        }
-// Sort tasks: urgent tasks first, then by the selected date sorting
-        filteredTasks.sort((a, b) => {
-            if (a.isUrgent && !b.isUrgent) return -1;
-            if (!a.isUrgent && b.isUrgent) return 1;
-            const dateA = new Date(a.dueDate);
-            const dateB = new Date(b.dueDate);
-            
-return sortByDate.value === 'oldest' ? dateA - dateB : dateB - dateA;
-        });
-const groupedTasks = KANBAN_STATUSES.reduce((acc, status) => ({ ...acc, [status]: [] }), {});
-filteredTasks.forEach(task => { if (groupedTasks[task.status]) { groupedTasks[task.status].push(task); } });
-        kanbanBoard.innerHTML = '';
-const headerColors = { 'Open': '#6c757d', 'In Progress': '#B4975A', 'Closed': '#1E4D2B' };
-        const emptyStateMessages = { 'Open': "No open tasks. Let's add one!", 'In Progress': "Nothing in progress. Time to start a task!", 'Closed': "No tasks closed recently." };
-
-// Render status columns
-        KANBAN_STATUSES.forEach(status => {
-            const column = document.createElement('div');
-            column.className = 'kanban-column';
-            column.dataset.status = status;
-            const tasksForStatus = groupedTasks[status] || [];
-            column.innerHTML = `<div class="column-header"><span>${status}</span><span class="task-count" style="background-color: ${headerColors[status]}">${tasksForStatus.length}</span></div><div class="tasks-container"></div>`;
-            const tasksContainer = column.querySelector('.tasks-container');
-            
-            if (tasksForStatus.length === 0) {
-                tasksContainer.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i> <p>${emptyStateMessages[status]}</p></div>`;
-            } else {
-    tasksForStatus.forEach(task => tasksContainer.appendChild(createTaskCard(task)));
-            }
-
-            column.addEventListener('dragover', handleDragOver);
-            column.addEventListener('dragleave', handleDragLeave);
-            column.addEventListener('drop', handleDrop);
-            kanbanBoard.appendChild(column);
-        });
-// Render "Today's Tasks" column
-        const today = new Date();
-today.setHours(0, 0, 0, 0);
-        const todaysTasks = activeTasks.filter(t => new Date(t.dueDate) <= today && t.status !== 'Closed');
-const column = document.createElement('div');
-        column.className = 'kanban-column todays-tasks';
-        column.innerHTML = `<div class="column-header"><span>Today's Tasks</span><span class="task-count" style="background-color: var(--color-accent-warning)">${todaysTasks.length}</span></div><div class="tasks-container"></div>`;
-const tasksContainerToday = column.querySelector('.tasks-container');
-        if (todaysTasks.length === 0) {
-            tasksContainerToday.innerHTML = `<div class="empty-state"><i class="fas fa-coffee"></i> <p>No tasks due today. Enjoy the break!</p></div>`;
-        } else {
-            todaysTasks.forEach(task => tasksContainerToday.appendChild(createTaskCard(task, false)));
-        }
-        kanbanBoard.appendChild(column);
-
-        // Render "This Week's Tasks" column
-        const nextWeek = new Date();
-        nextWeek.setDate(today.getDate() + 7);
-        const thisWeeksTasks = activeTasks.filter(t => {
-            const dueDate = new Date(t.dueDate);
-            return dueDate > today && dueDate <= nextWeek && t.status !== 'Closed';
-        });
-        const weekColumn = document.createElement('div');
-        weekColumn.className = 'kanban-column this-week-tasks';
-        weekColumn.innerHTML = `<div class="column-header"><span>This Week's Tasks</span><span class="task-count" style="background-color: #1890ff">${thisWeeksTasks.length}</span></div><div class="tasks-container"></div>`;
-        const weekTasksContainer = weekColumn.querySelector('.tasks-container');
-        if (thisWeeksTasks.length === 0) {
-            weekTasksContainer.innerHTML = `<div class="empty-state"><i class="fas fa-calendar-check"></i> <p>No tasks due this week.</p></div>`;
-        } else {
-            thisWeeksTasks.forEach(task => weekTasksContainer.appendChild(createTaskCard(task, false)));
-        }
-        kanbanBoard.appendChild(weekColumn);
-    };
-const createTaskCard = (task, isDraggable = true) => {
-        const card = document.createElement('div');
-const today = new Date();
-        today.setHours(0,0,0,0);
-        const isLate = new Date(task.dueDate) < today && !['Closed'].includes(task.status);
-        card.className = `task-card ${isLate ?
-'late' : ''}`;
-        card.dataset.id = task.id;
-        card.draggable = isDraggable;
-        card.style.setProperty('--card-category-color', categories[task.category] || 'transparent');
-        const allAssignees = Array.from(getAllAssignees(task));
-const assigneeStackHTML = allAssignees.map(p => `<div class="card-assignee-icon" style="background-color: ${people[p] || '#ccc'}" title="${p}">${getInitials(p)}</div>`).join('');
-        const urgentIconHTML = task.isUrgent ?
-'<i class="fas fa-exclamation-circle urgent-icon" title="Urgent"></i>' : '';
-        const quickCloseBtnHTML = task.status !== 'Closed' ? `<button class="task-card-quick-close" data-task-id="${task.id}" title="Mark as Closed"><i class="fas fa-check-circle"></i></button>` : '';
-        
-        let displayProgress = 0;
-if (typeof task.progress === 'number') {
-            displayProgress = task.progress;
-} else {
-            if (task.status === 'In Progress') displayProgress = 50;
-else if (task.status === 'Closed') displayProgress = 100;
-        }
-
-        const progressBarHTML = `
-            <div class="progress-bar-container">
-                <div class="progress-bar" style="width: ${displayProgress}%;"></div>
-            </div>
-        `;
-card.innerHTML = `
-            ${quickCloseBtnHTML}
-            ${urgentIconHTML}
-            ${isLate ?
-'<div class="overdue-label">Overdue</div>' : ''}
-            <h4 class="task-card-title">
-                <span>${task.name}</span>
-                <div class="title-assignee-stack">${assigneeStackHTML}</div>
-            </h4>
-            <p class="task-card-description">${task.description ||
-''}</p>
-            <div class="task-card-footer">
-                <span class="task-card-due-date"><i class="far fa-calendar-alt"></i>&nbsp;${formatDateForDisplay(task.dueDate)}</span>
-                <span class="task-card-category-tag" style="background-color: ${categories[task.category] || '#ccc'}">${task.category}</span>
-            </div>
-            ${progressBarHTML}
-            `;
-card.addEventListener('click', (e) => {
-            if (e.target.closest('.task-card-quick-close')) return;
-            openTaskModal(task.id)
-        });
-        if (isDraggable) {
-            card.addEventListener('dragstart', handleDragStart);
-card.addEventListener('dragend', handleDragEnd);
-        }
-
-        const quickCloseBtn = card.querySelector('.task-card-quick-close');
-        if (quickCloseBtn) {
-            quickCloseBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const taskToClose = findTaskById(e.currentTarget.dataset.taskId);
-                if (taskToClose && taskToClose.status !== 'Closed') {
-                    taskToClose.status = 'Closed';
-                    taskToClose.closedDate = new Date().toISOString();
-                    logAction(taskToClose, `Task status changed to Closed.`);
-                    saveState();
-                }
-            });
-        }
-        return card;
-    };
-const renderSubTask = (taskObject, level = 0) => {
-        if (taskObject.status === 'Closed') {
-            return document.createDocumentFragment();
-// Don't render closed subtasks
-        }
-        const container = document.createElement('div');
-const colorClass = SUBTASK_COLORS[level % SUBTASK_COLORS.length];
-        container.className = `sub-task-container ${colorClass}`;
-
-        const header = document.createElement('div');
-        const isExpanded = expandedSubtasks.has(taskObject.id);
-header.className = `sub-task-header ${isExpanded ? '' : 'collapsed'}`;
-        const assigneeIcon = `<div class="card-assignee-icon sub-task-assignee-icon" style="background-color: ${people[taskObject.assignee] || '#ccc'}" title="${taskObject.assignee}">${getInitials(taskObject.assignee)}</div>`;
-const statusDropdownHTML = `<select class="sub-task-status" data-task-id="${taskObject.id}">${KANBAN_STATUSES.map(s => `<option value="${s}" ${taskObject.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>`;
-const quickCloseBtnHTML = `<button class="sub-task-quick-close" data-task-id="${taskObject.id}" title="Mark as Closed"><i class="fas fa-check-circle"></i></button>`;
-
-        header.innerHTML = `<span class="sub-task-toggle"><i class="fas fa-chevron-down"></i></span><span class="sub-task-title">${taskObject.name}</span>${assigneeIcon}<span><strong>Due:</strong> ${formatDateForDisplay(taskObject.dueDate)}</span>${statusDropdownHTML}${quickCloseBtnHTML}`;
-const body = document.createElement('div');
-        body.className = `sub-task-body ${isExpanded ? '' : 'collapsed'}`;
-        
-        const linksSection = document.createElement('div');
-        linksSection.className = 'links-section';
-linksSection.innerHTML = `<h4>Links <button type="button" class="add-link-btn-header" data-task-id="${taskObject.id}" title="Add Link"><i class="fas fa-link"></i></button></h4>`;
-        const linksList = document.createElement('ul');
-        linksList.className = 'links-list';
-(taskObject.links || []).forEach(link => {
-            const li = document.createElement('li');
-            li.innerHTML = `<a href="${link.url}" target="_blank">${link.name}</a>`;
-            linksList.appendChild(li);
-        });
-linksSection.appendChild(linksList);
-
-        body.innerHTML = `<p class="sub-task-description">${taskObject.description || 'No description.'}</p>`;
-        body.appendChild(linksSection);
-        body.appendChild(createLogControls(taskObject));
-
-        const nestedSubtasksContainer = document.createElement('div');
-        nestedSubtasksContainer.className = 'sub-tasks-nested';
-(taskObject.subtasks || []).forEach((sub, index) => nestedSubtasksContainer.appendChild(renderSubTask(sub, level + 1 + index)));
-        body.appendChild(nestedSubtasksContainer);
-        body.appendChild(createSubtaskForm(taskObject));
-        container.append(header, body);
-header.addEventListener('click', (e) => { if (e.target.closest('button,select,input')) return; isExpanded ? expandedSubtasks.delete(taskObject.id) : expandedSubtasks.add(taskObject.id); header.classList.toggle('collapsed'); body.classList.toggle('collapsed'); });
-const handleSubtaskClose = (subTaskId) => {
-            const subTask = findTaskById(subTaskId);
-if (subTask && subTask.status !== 'Closed') {
-                subTask.status = 'Closed';
-subTask.closedDate = new Date().toISOString();
-                logAction(currentEditingTask, `Sub-task "${subTask.name}" marked as completed.`, subTask.assignee);
-                updateMainTaskDueDate(currentEditingTask);
-                saveState();
-                openTaskModal(currentEditingTask.id);
-}
-        };
-
-        header.querySelector('.sub-task-status').addEventListener('change', (e) => {
-            const subTask = findTaskById(e.target.dataset.taskId);
-            if (subTask) {
-                subTask.status = e.target.value;
-                if (subTask.status === 'Closed') {
-                    handleSubtaskClose(subTask.id);
- 
-               }
-            }
-        });
-header.querySelector('.sub-task-quick-close').addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent header click from toggling expand/collapse
-            handleSubtaskClose(e.currentTarget.dataset.taskId);
-        });
-body.querySelector('.add-link-btn-header').addEventListener('click', (e) => {
-            openLinkModal(e.currentTarget.dataset.taskId);
-        });
-return container;
-    };
-
-    const createLogControls = (taskObject) => {
-        const div = document.createElement('div');
-div.className = 'log-controls';
-        div.innerHTML = `<h4>Action Log</h4><div class="log-controls-wrapper"><div class="update-controls"><input type="text" placeholder="Add manual update..." class="manual-update-input"><button type="button" class="btn btn-primary add-update-btn"><i class="fas fa-comment-dots"></i> Log</button></div><div class="chaser-controls"><small>Log Chaser:</small><button type="button" class="btn btn-chaser" data-log="Email chaser sent">Email</button><button type="button" class="btn btn-chaser" data-log="Letter chaser sent">Letter</button><button type="button" class="btn btn-chaser" data-log="Chased at meeting">Meeting</button></div></div>`;
-div.querySelector('.add-update-btn').addEventListener('click', () => { const input = div.querySelector('.manual-update-input'); if (input.value.trim()) { logAction(taskObject, input.value.trim(), taskObject.assignee); input.value = ''; openTaskModal(currentEditingTask.id); } });
-div.querySelectorAll('.btn-chaser').forEach(btn => btn.addEventListener('click', (e) => {logAction(taskObject, e.target.dataset.log, taskObject.assignee); openTaskModal(currentEditingTask.id);}));
-        return div;
-    };
-const createSubtaskForm = (parentTask) => {
-        const form = document.createElement('div');
-        form.className = 'add-subtask-form';
-form.innerHTML = `<h4>Add New Sub-Task</h4><input type="text" placeholder="Sub-task title..." class="new-subtask-name"><textarea placeholder="Sub-task description..." rows="2" class="new-subtask-description"></textarea><div class="input-with-button"><select class="new-subtask-assignee"><option value="" disabled selected>Select Assignee...</option></select><button type="button" class="add-icon-btn add-person-btn-subtask" title="Add New Person"><i class="fas fa-user-plus"></i></button></div><input type="date" class="new-subtask-due-date"><button type="button" class="btn btn-primary add-subtask-btn"><i class="fas fa-plus"></i> Add Sub-Task</button>`;
-const select = form.querySelector('.new-subtask-assignee');
-        select.innerHTML += Object.keys(people).sort().map(p => `<option value="${p}">${p}</option>`).join('');
-        form.querySelector('.add-person-btn-subtask').addEventListener('click', () => { activeAssigneeSelect = select; openModal(personModal); });
-form.querySelector('.add-subtask-btn').addEventListener('click', () => handleAddSubTask(form, parentTask));
-        return form;
-    };
-
-    const renderLogSummary = (task) => {
-        let allLogs = [];
-(function collectLogs(t) {
-            if (t.log) allLogs.push(...t.log.map(l => ({ ...l, taskName: t.name })));
-            if (t.subtasks) t.subtasks.forEach(collectLogs);
-        })(task);
-allLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        logSummaryContainer.innerHTML = '';
-if (allLogs.length === 0) { logSummaryContainer.innerHTML = 'No actions logged.'; return;
-}
-        allLogs.forEach(log => {
-            const entry = document.createElement('div');
-            entry.className = 'log-entry';
-            const assigneeIcon = `<div class="card-assignee-icon" style="background-color: ${people[log.assignee] || '#ccc'}" title="${log.assignee}">${getInitials(log.assignee)}</div>`;
-            entry.innerHTML = `<div>${assigneeIcon}</div><div><span class="timestamp">[${formatDate(log.timestamp)}]</span><span class="log-task-tag">${log.taskName}</span> ${log.message}</div>`;
-            logSummaryContainer.appendChild(entry);
-        });
-};
-
-    const findTaskById = (id, taskArray = tasks) => { for (const task of taskArray) { if (task.id === id) return task;
-if (task.subtasks) { const found = findTaskById(id, task.subtasks); if (found) return found; } } return null; };
-const getAllAssignees = (task) => { const assignees = new Set(); if (task.assignee) assignees.add(task.assignee);
-(function traverse(subtasks) { (subtasks || []).forEach(st => { if (st.assignee) assignees.add(st.assignee); traverse(st.subtasks); }); })(task.subtasks); return assignees; };
-const handleAddSubTask = (form, parentTask) => {
-        const name = form.querySelector('.new-subtask-name').value.trim(), description = form.querySelector('.new-subtask-description').value.trim(), assignee = form.querySelector('.new-subtask-assignee').value, dueDate = form.querySelector('.new-subtask-due-date').value;
-if (!name || !assignee || !dueDate) return alert('Please provide a title, assignee, and due date for the sub-task.');
-if (!parentTask.subtasks) parentTask.subtasks = [];
-        const newSubtask = { id: getNextId('SUB'), name, description, assignee, dueDate, status: 'Open', subtasks: [], log: [], closedDate: null, progress: null, links: [] };
-parentTask.subtasks.push(newSubtask);
-        logAction(parentTask, `Sub-task "${name}" was added.`, assignee);
-        updateMainTaskDueDate(parentTask);
-        expandedSubtasks.add(parentTask.id);
-        saveState();
-        openTaskModal(currentEditingTask.id);
-    };
-const logAction = (taskObject, message, assignee) => {
-        if (!taskObject.log) taskObject.log = [];
-const logAssignee = assignee || taskObject.assignee;
-        taskObject.log.unshift({ timestamp: new Date().toISOString(), message, assignee: logAssignee });
-    };
-const openTaskModal = (taskId = null) => {
-        taskForm.reset();
-        currentEditingTask = null;
-if (!taskId) expandedSubtasks.clear();
-        [subTaskSection, mainLogControls, logSummarySection, deleteTaskBtn, archiveTaskBtn, manageTaskHeader, progressContainer].forEach(el => el.style.display = 'none');
-        populateAllDropdowns();
-if (taskId) {
-            const task = findTaskById(taskId);
-if (!task) return;
-            currentEditingTask = task;
-            if(!expandedSubtasks.has(task.id)) expandedSubtasks.add(task.id);
-            modalTitle.textContent = 'Manage Task';
-            manageTaskHeader.style.display = 'flex';
-manageTaskHeader.innerHTML = `<h4>${task.name}</h4><div class="header-assignee"><div class="card-assignee-icon" style="background-color: ${people[task.assignee] || '#ccc'}" title="${task.assignee}">${getInitials(task.assignee)}</div><span>${task.assignee || 'Unassigned'}</span></div>`;
-            taskNameInput.value = task.name;
-            taskDescriptionInput.value = task.description;
-dueDateInput.value = task.dueDate;
-            taskUrgentInput.checked = task.isUrgent;
-            taskAssigneeSelect.value = task.assignee;
-            categorySelect.value = task.category;
-            taskStatusSelect.value = task.status;
-            
-            get('mainTaskLinksList').innerHTML = '';
-(task.links || []).forEach(link => {
-                const li = document.createElement('li');
-                li.innerHTML = `<a href="${link.url}" target="_blank">${link.name}</a>`;
-                get('mainTaskLinksList').appendChild(li);
-            });
-if (task.status === 'In Progress') {
-                progressContainer.style.display = 'block';
-taskProgressInput.value = task.progress || '';
-            }
-
-            [deleteTaskBtn, archiveTaskBtn, subTaskSection, mainLogControls, logSummarySection].forEach(el => el.style.display = 'block');
-subtasksListContainer.innerHTML = '';
-ensureCompactToolbar();
-
-
-if (document.getElementById('toggleCompactSubtasks') && document.getElementById('toggleCompactSubtasks').checked) {
-  subtasksListContainer.appendChild(renderCompactSubtasksTable(task));
-  addSubTaskFormContainer.innerHTML = '';
-} else {
-  (task.subtasks || []).forEach((sub, index) => subtasksListContainer.appendChild(renderSubTask(sub, index)));
-  addSubTaskFormContainer.innerHTML = '';
-  addSubTaskFormContainer.appendChild(createSubtaskForm(task));
-}
-mainLogControls.innerHTML = '';
-mainLogControls.appendChild(createLogControls(task));
-renderLogSummary(task);
-} else {
-            modalTitle.textContent = 'New Task';
-taskUrgentInput.checked = false;
-        }
-        setTimeout(() => taskDescriptionInput.dispatchEvent(new Event('input')), 50);
-        openModal(taskModal);
-    };
-const updateMainTaskDueDate = (task) => {
-        if (task.isUrgent || !task.subtasks || task.subtasks.length === 0) {
-            return;
+/* CSS Variables for Theming */
+:root {
+    --font-primary: 'Inter', sans-serif;
+    --color-bg-page: #f8f9fa;
+    --color-bg-sidebar: #1E4D2B; /* Corporate Green */
+    --color-bg-column: #e9ecef;
+    --color-bg-card: #ffffff;
+    --color-bg-input: #f1f3f5;
+    --color-text-primary: #212529;
+    --color-text-secondary: #495057;
+    --color-accent-primary: #1E4D2B; /* Corporate Green */
+    --color-accent-danger: #dc3545;
+    --color-accent-warning: #B4975A;
+    --color-accent-secondary: #6c757d;
+    --color-border: #dee2e6;
+    --shadow-soft: 0 2px 8px rgba(0,0,0,0.08);
+    --border-radius-sm: 4px;
+    --border-radius-md: 8px;
+    --subtask-color-1: #e7f5ff;
+    --subtask-color-2: #e3fafc;
+    --subtask-color-3: #f0fdf4;
+    --subtask-color-4: #fffbeb;
+    --subtask-color-5: #fef2f2;
+    --card-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    --modal-backdrop: rgba(0, 0, 0, 0.4);
+    --in-app-notification-info: #e9ecef;
+    --in-app-notification-success: #d4edda;
+    --in-app-notification-error: #f8d7da;
+    --in-app-notification-text-info: #495057;
+    --in-app-notification-text-success: #155724;
+    --in-app-notification-text-error: #721c24;
 }
 
-        let allSubtasks = [];
-(function collectSubtasks(subtasks) {
-            for (const sub of subtasks) {
-                allSubtasks.push(sub);
-                if (sub.subtasks && sub.subtasks.length > 0) {
-                    collectSubtasks(sub.subtasks);
-                }
-       
-     }
-        })(task.subtasks);
-
-        const today = new Date();
-today.setHours(0, 0, 0, 0);
-
-        const overdueSubtask = allSubtasks.find(st =>
-            new Date(st.dueDate) < today && !['Closed'].includes(st.status)
-        );
-if (overdueSubtask) {
-            const newDueDate = addWeekdays(new Date(), 5);
-task.dueDate = newDueDate.toISOString().split('T')[0];
-            return;
-        }
-
-        const incompleteSubtasks = allSubtasks.filter(st => !['Closed'].includes(st.status));
-if (incompleteSubtasks.length > 0) {
-            const latestDueDate = new Date(Math.max(...incompleteSubtasks.map(st => new Date(st.dueDate))));
-latestDueDate.setDate(latestDueDate.getDate() + 5);
-            task.dueDate = latestDueDate.toISOString().split('T')[0];
-        }
-    };
-const populateAllDropdowns = () => {
-        const sortedPeople = Object.keys(people).sort(), sortedCategories = Object.keys(categories).sort();
-const peopleOptions = sortedPeople.map(p => `<option value="${p}">${p}</option>`).join('');
-        const categoryOptions = sortedCategories.map(c => `<option value="${c}">${c}</option>`).join('');
-assigneeFilter.innerHTML = '<option value="all">All Assignees</option>' + peopleOptions;
-        categoryFilter.innerHTML = '<option value="all">All Categories</option>' + categoryOptions;
-const currentAssignee = taskAssigneeSelect.value, currentCategory = categorySelect.value;
-        taskAssigneeSelect.innerHTML = '<option value="" disabled selected>Select...</option>' + peopleOptions;
-categorySelect.innerHTML = '<option value="" disabled selected>Select...</option>' + categoryOptions;
-        if(currentAssignee) taskAssigneeSelect.value = currentAssignee;
-        if(currentCategory) categorySelect.value = currentCategory;
-queryAll('.new-subtask-assignee').forEach(select => { const currentSubAssignee = select.value; select.innerHTML = '<option value="" disabled selected>Select...</option>' + peopleOptions; if(currentSubAssignee) select.value = currentSubAssignee; });
-};
-
-    const openModal = (modal) => modal.classList.add('is-active');
-    const closeModal = (modal) => modal.classList.remove('is-active');
-const generateReportHTML = (title, tasksToReport) => { let tableHTML = `<table class="report-table"><thead><tr><th>Category</th><th>Status</th><th>Task</th><th>Description</th><th>Assignee</th><th>Due Date</th><th>Sub-tasks</th></tr></thead><tbody>`;
-tasksToReport.forEach(task => { let subtaskHTML = ''; if (task.subtasks?.length > 0) { subtaskHTML += '<ul>'; (function r(s) { s.forEach(st => { subtaskHTML += `<li>${st.name} (Assignee: ${st.assignee})</li>`; if (st.subtasks?.length > 0) { subtaskHTML += '<ul>'; r(st.subtasks); subtaskHTML += '</ul>'; } }); })(task.subtasks); subtaskHTML += '</ul>'; } tableHTML += `<tr><td>${task.category}</td><td>${task.status}</td><td>${task.name}</td><td>${task.description || ''}</td><td>${task.assignee}</td><td>${formatDateForDisplay(task.dueDate)}</td><td>${subtaskHTML || 'None'}</td></tr>`; });
-tableHTML += `</tbody></table>`; return `<div class="print-report"><h1>${title}</h1><p>Generated on: ${new Date().toLocaleDateString('en-GB')}</p>${tableHTML}</div>`; };
-    const triggerPrint = (reportHTML) => { get('print-container').innerHTML = reportHTML; window.print();
-};
-    const generateAssigneeReport = () => { const selectedUsers = Array.from(queryAll('#reportUserSelectionContainer .report-user-checkbox:checked')).map(cb => cb.value);
-if (selectedUsers.length === 0) return alert('Please select at least one user.');
-const reportTasks = tasks.filter(task => !task.isArchived && selectedUsers.some(user => getAllAssignees(task).has(user))); 
-        triggerPrint(generateReportHTML('Task Report by Assignee', reportTasks)); 
-        closeModal(get('reportConfigModal'));
-    };
-const generateOverdueReport = () => { const overdueTasks = tasks.filter(task => !task.isArchived && new Date(task.dueDate) < new Date() && !['Closed'].includes(task.status));
-if (overdueTasks.length === 0) { alert('No overdue tasks found.'); return; } triggerPrint(generateReportHTML('Overdue Tasks Report', overdueTasks)); };
-// --- SETTINGS MODAL ---
-    const isPersonInUse = (personName) => {
-        const checkTasks = (taskList) => {
-            for (const task of taskList) {
-                if (task.assignee === personName) return true;
-if (task.subtasks && task.subtasks.length > 0) {
-                    if (checkTasks(task.subtasks)) return true;
-}
-            }
-            return false;
-};
-        return checkTasks(tasks);
-    };
-
-    const isCategoryInUse = (categoryName) => {
-        return tasks.some(task => task.category === categoryName && !task.isArchived);
-};
-
-    const openSettingsModal = () => {
-        peopleList.innerHTML = '';
-        const sortedPeople = Object.keys(people).sort((a, b) => a.localeCompare(b));
-        if (sortedPeople.length === 0) {
-            peopleList.innerHTML = `<div class="empty-state"><i class="fas fa-user-plus"></i><p>No people added yet.</p></div>`;
-        } else {
-sortedPeople.forEach(person => {
-                const li = document.createElement('li');
-                const colorInputId = `person-color-${person.replace(/\s+/g, '-')}`;
-                li.innerHTML = `
-                    <div class="settings-list-item">
-                        <label for="${colorInputId}" class="settings-color-swatch" style="background-color: ${people[person]}"></label>
-                
-        <input type="color" id="${colorInputId}" class="color-input" value="${people[person]}">
-                        <span>${person}</span>
-                    </div>
-                    <button class="settings-delete-btn" data-name="${person}">&times;</button>
-                `;
-                li.querySelector('.color-input').addEventListener('change', (e) => {
-         people[person] = e.target.value;
-                    saveState();
-                    openSettingsModal();
-                });
-                li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
-                    const name = e.target.dataset.name;
-if (isPersonInUse(name)) {
-                        alert(`Cannot delete "${name}" as they are currently assigned to one or more tasks.`);
-return;
-                    }
-                    if (confirm(`Are you sure you want to delete "${name}"?`)) {
-                        delete people[name];
-saveState();
-                        openSettingsModal();
-                    }
-                });
-                peopleList.appendChild(li);
-            });
-        }
-categoryList.innerHTML = '';
-        const sortedCategories = Object.keys(categories).sort((a, b) => a.localeCompare(b));
-        if (sortedCategories.length === 0) {
-            categoryList.innerHTML = `<div class="empty-state"><i class="fas fa-tags"></i><p>No categories added yet.</p></div>`;
-        } else {
-sortedCategories.forEach(cat => {
-                const li = document.createElement('li');
-                const colorInputId = `cat-color-${cat.replace(/\s+/g, '-')}`;
-                li.innerHTML = `
-                    <div class="settings-list-item">
-                        <label for="${colorInputId}" class="settings-color-swatch" style="background-color: ${categories[cat]}"></label>
-                
-        <input type="color" id="${colorInputId}" class="color-input" value="${categories[cat]}">
-                        <span>${cat}</span>
-                    </div>
-                    <button class="settings-delete-btn" data-name="${cat}">&times;</button>
-                `;
-                li.querySelector('.color-input').addEventListener('change', (e) => {
-         categories[cat] = e.target.value;
-                    saveState();
-                    openSettingsModal();
-                });
-                li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
-                    const name = e.target.dataset.name;
-if (isCategoryInUse(name)) {
-                        alert(`Cannot delete "${name}" as it is currently used by one or more tasks.`);
-return;
-                    }
-                    if (confirm(`Are you sure you want to delete the category "${name}"?`)) {
-                        delete categories[name];
-saveState();
-                        openSettingsModal();
-                    }
-                });
-                categoryList.appendChild(li);
-            });
-        }
-passwordList.innerHTML = '';
-        const sortedPasswords = [...passwords].sort((a, b) => a.service.localeCompare(b.service));
-        if (sortedPasswords.length === 0) {
-            passwordList.innerHTML = `<div class="empty-state"><i class="fas fa-key"></i><p>No passwords saved.</p></div>`;
-        } else {
-sortedPasswords.forEach(p => {
-                const li = document.createElement('li');
-                const linkHTML = p.link ? `<small><a href="${p.link}" target="_blank">${p.link}</a></small>` : '';
-                li.innerHTML = `
-                    <div class="password-item-details">
-                        <strong>${p.service}</strong>
-                        <small>${p.username}</small>
-                        ${linkHTML}
-    </div>
-                    <div class="password-field-container">
-                        <input type="password" value="${p.value}" readonly>
-                        <button class="password-action-btn toggle-vis" title="Show/Hide Password"><i class="fas fa-eye"></i></button>
-                        <button class="password-action-btn copy-pass" title="Copy Password"><i class="fas fa-copy"></i></button>
-        
-                <button class="password-action-btn edit-pass" title="Edit Password"><i class="fas fa-edit"></i></button>
-                    </div>
-                    <button class="settings-delete-btn" data-id="${p.id}">&times;</button>
-                `;
-                
-                const passInput = li.querySelector('input');
-       const toggleBtn = li.querySelector('.toggle-vis');
-                const toggleIcon = toggleBtn.querySelector('i');
-toggleBtn.addEventListener('click', () => {
-                    if (passInput.type === 'password') {
-                        passInput.type = 'text';
-                        toggleIcon.classList.remove('fa-eye');
-                        toggleIcon.classList.add('fa-eye-slash');
- } else {
-                        passInput.type = 'password';
-                        toggleIcon.classList.remove('fa-eye-slash');
-                        toggleIcon.classList.add('fa-eye');
-                    }
-                });
-li.querySelector('.copy-pass').addEventListener('click', () => {
-                    const originalType = passInput.type;
-                    passInput.type = 'text';
-                    passInput.select();
-                    document.execCommand('copy');
-                    passInput.type = originalType;
-      window.getSelection().removeAllRanges();
-                    showToast('Password copied!');
-                });
-li.querySelector('.edit-pass').addEventListener('click', () => {
-                    openPasswordModal(p.id);
-                });
-li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
-                    const id = e.target.dataset.id;
-                    if (confirm(`Are you sure you want to delete the password for "${p.service}"?`)) {
-                        passwords = passwords.filter(pwd => pwd.id !== id);
-                        saveState();
-                openSettingsModal();
-                    }
-                });
-passwordList.appendChild(li);
-            });
-        }
-        websiteList.innerHTML = '';
-        const sortedWebsites = [...websites].sort((a,b) => a.service.localeCompare(b.service));
-        if (sortedWebsites.length === 0) {
-            websiteList.innerHTML = `<div class="empty-state"><i class="fas fa-globe"></i><p>No websites saved.</p></div>`;
-        } else {
-            sortedWebsites.forEach(w => {
-                const li = document.createElement('li');
-                const linkHTML = w.link ? `<small><a href="${w.link}" target="_blank">${w.link}</a></small>` : '';
-                li.innerHTML = `
-                    <div class="password-item-details">
-                        <strong>${w.service}</strong>
-                        <small>${w.username}</small>
-                        ${linkHTML}
-                    </div>
-                    <div class="password-field-container">
-                        <input type="password" value="${w.value}" readonly>
-                        <button class="password-action-btn toggle-vis" title="Show/Hide Password"><i class="fas fa-eye"></i></button>
-                        <button class="password-action-btn copy-pass" title="Copy Password"><i class="fas fa-copy"></i></button>
-                        <button class="password-action-btn edit-pass" title="Edit Website"><i class="fas fa-edit"></i></button>
-                    </div>
-                    <button class="settings-delete-btn" data-id="${w.id}">&times;</button>
-                `;
-                
-                const passInput = li.querySelector('input');
-                const toggleBtn = li.querySelector('.toggle-vis');
-                const toggleIcon = toggleBtn.querySelector('i');
-                toggleBtn.addEventListener('click', () => {
-                    if (passInput.type === 'password') {
-                        passInput.type = 'text';
-                        toggleIcon.classList.remove('fa-eye');
-                        toggleIcon.classList.add('fa-eye-slash');
-                    } else {
-                        passInput.type = 'password';
-                        toggleIcon.classList.remove('fa-eye-slash');
-                        toggleIcon.classList.add('fa-eye');
-                    }
-                });
-                li.querySelector('.copy-pass').addEventListener('click', () => {
-                    const originalType = passInput.type;
-                    passInput.type = 'text';
-                    passInput.select();
-                    document.execCommand('copy');
-                    passInput.type = originalType;
-                    window.getSelection().removeAllRanges();
-                    showToast('Password copied!');
-                });
-                li.querySelector('.edit-pass').addEventListener('click', () => {
-                    openWebsiteModal(w.id);
-                });
-                li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
-                    const id = e.target.dataset.id;
-                    if (confirm(`Are you sure you want to delete the website credentials for "${w.service}"?`)) {
-                        websites = websites.filter(web => web.id !== id);
-                        saveState();
-                        openSettingsModal();
-                    }
-                });
-                websiteList.appendChild(li);
-            });
-        }
-        openModal(settingsModal);
-    };
-
-    // --- PASSWORD MODAL ---
-    const openPasswordModal = (passwordId = null) => {
-        settingsPasswordForm.reset();
-passwordIdInput.value = '';
-        if (passwordId) {
-            const password = passwords.find(p => p.id === passwordId);
-if (password) {
-                passwordModalTitle.textContent = 'Edit Password';
-passwordIdInput.value = password.id;
-                settingsPasswordServiceInput.value = password.service;
-                settingsPasswordUsernameInput.value = password.username;
-                settingsPasswordValueInput.value = password.value;
-                settingsPasswordLinkInput.value = password.link || '';
-}
-        } else {
-            passwordModalTitle.textContent = 'Add New Password';
-}
-        openModal(passwordModal);
-    };
-
-    // --- WEBSITE MODAL ---
-    const openWebsiteModal = (websiteId = null) => {
-        get('settingsWebsiteForm').reset();
-        get('websiteId').value = '';
-        if (websiteId) {
-            const website = websites.find(w => w.id === websiteId);
-            if (website) {
-                get('websiteModalTitle').textContent = 'Edit Website';
-                get('websiteId').value = website.id;
-                get('settingsWebsiteService').value = website.service;
-                get('settingsWebsiteUsername').value = website.username;
-                get('settingsWebsiteValue').value = website.value;
-                get('settingsWebsiteLink').value = website.link || '';
-            }
-        } else {
-            get('websiteModalTitle').textContent = 'Add New Website';
-        }
-        openModal(get('websiteModal'));
-    };
-
-// --- LINK MODAL ---
-    const openLinkModal = (taskId) => {
-        currentLinkTask = findTaskById(taskId);
-if (!currentLinkTask) return;
-
-        existingLinksList.innerHTML = '';
-        (currentLinkTask.links || []).forEach((link, index) => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <a href="${link.url}" target="_blank">${link.name}</a>
-                <button class="settings-delete-btn" data-index="${index}">&times;</button>
-            `;
-            
-li.querySelector('.settings-delete-btn').addEventListener('click', (e) => {
-                const linkIndex = parseInt(e.currentTarget.dataset.index, 10);
-                currentLinkTask.links.splice(linkIndex, 1);
-                saveState();
-                openLinkModal(taskId); // Re-render the link list
-                openTaskModal(currentEditingTask.id); // Re-render the main task modal
- 
-           });
-            existingLinksList.appendChild(li);
-        });
-openModal(linkModal);
-    };
-
-    const openArchiveModal = () => {
-        const archivedTasksList = get('archivedTasksList');
-        archivedTasksList.innerHTML = '';
-        const archived = tasks.filter(t => t.isArchived);
-
-        if (archived.length === 0) {
-            archivedTasksList.innerHTML = `<div class="empty-state"><i class="fas fa-archive"></i> <p>No tasks have been archived.</p></div>`;
-        } else {
-            archived.forEach(task => {
-                const li = document.createElement('li');
-                li.dataset.id = task.id;
-                li.innerHTML = `
-                    <div class="password-item-details">
-                        <strong>${task.name}</strong>
-                        <small>Archived on: ${formatDateForDisplay(task.archivedDate)}</small>
-                    </div>
-                    <div>
-                        <button class="btn btn-secondary btn-sm restore-btn"><i class="fas fa-undo"></i> Restore</button>
-                        <button class="btn btn-danger btn-sm delete-perm-btn"><i class="fas fa-trash-alt"></i> Delete Permanently</button>
-                    </div>
-                `;
-                archivedTasksList.appendChild(li);
-            });
-        }
-        openModal(get('archiveModal'));
-    };
-
-    const renderDashboard = () => {
-        const activeTasks = tasks.filter(t => !t.isArchived);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const todayISO = today.toISOString().split('T')[0];
-
-        const nextWeek = new Date(today);
-        nextWeek.setDate(today.getDate() + 7);
-
-        const openCount = activeTasks.filter(t => t.status === 'Open').length;
-        const inProgressCount = activeTasks.filter(t => t.status === 'In Progress').length;
-        const closedCount = tasks.filter(t => t.status === 'Closed').length;
-        const overdueCount = activeTasks.filter(t => new Date(t.dueDate) < today && t.status !== 'Closed').length;
-        const dueTodayCount = activeTasks.filter(t => t.dueDate === todayISO && t.status !== 'Closed').length;
-        const dueThisWeekCount = activeTasks.filter(t => {
-            const dueDate = new Date(t.dueDate);
-            return dueDate > today && dueDate <= nextWeek && t.status !== 'Closed';
-        }).length;
-        
-        get('stat-open').textContent = openCount;
-        get('stat-in-progress').textContent = inProgressCount;
-        get('stat-overdue').textContent = overdueCount;
-        get('stat-due-today').textContent = dueTodayCount;
-        get('stat-due-this-week').textContent = dueThisWeekCount;
-        get('stat-closed').textContent = closedCount;
-
-        const urgentTasks = activeTasks.filter(t => t.isUrgent && t.status !== 'Closed').sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
-        const upcomingTasks = activeTasks.filter(t => t.status !== 'Closed' && new Date(t.dueDate) >= today).sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate)).slice(0, 5);
-        
-        const urgentList = get('dashboard-urgent-tasks');
-        urgentList.innerHTML = '';
-        if (urgentTasks.length === 0) {
-            urgentList.innerHTML = `<li class="empty-state" style="padding:1rem;"><p>No urgent tasks.</p></li>`;
-        } else {
-            urgentTasks.forEach(task => {
-                const li = document.createElement('li');
-                li.dataset.taskId = task.id;
-                li.innerHTML = `
-                    <div>
-                        <div class="dashboard-task-item-title">${task.name}</div>
-                        <div class="dashboard-task-item-due">Due: ${formatDateForDisplay(task.dueDate)}</div>
-                    </div>
-                    <span class="task-card-category-tag" style="background-color: ${categories[task.category] || '#ccc'}">${task.category}</span>
-                `;
-                urgentList.appendChild(li);
-            });
-        }
-
-        const upcomingList = get('dashboard-upcoming-tasks');
-        upcomingList.innerHTML = '';
-        if (upcomingTasks.length === 0) {
-            upcomingList.innerHTML = `<li class="empty-state" style="padding:1rem;"><p>No upcoming tasks.</p></li>`;
-        } else {
-            upcomingTasks.forEach(task => {
-                const li = document.createElement('li');
-                li.dataset.taskId = task.id;
-                li.innerHTML = `
-                    <div>
-                        <div class="dashboard-task-item-title">${task.name}</div>
-                        <div class="dashboard-task-item-due">Due: ${formatDateForDisplay(task.dueDate)}</div>
-                    </div>
-                    <span class="task-card-category-tag" style="background-color: ${categories[task.category] || '#ccc'}">${task.category}</span>
-                `;
-                upcomingList.appendChild(li);
-            });
-        }
-    };
-
-    // --- VIEW SWITCHING ---
-    const switchView = (targetViewId) => {
-        queryAll('.view-container').forEach(view => view.style.display = 'none');
-get(targetViewId).style.display = 'flex';
-        
-        const heading = get('main-app-heading');
-        queryAll('.sidebar-nav li').forEach(li => li.classList.remove('active'));
-        
-        const activeLink = get(targetViewId.replace('View', 'Link'));
-if(activeLink) {
-            activeLink.parentElement.classList.add('active');
-            heading.textContent = activeLink.querySelector('span').textContent;
+body[data-theme="dark"] {
+    --color-bg-page: #1a1a1a;
+    --color-bg-column: #2c2c2c;
+    --color-bg-card: #252525;
+    --color-bg-input: #333;
+    --color-text-primary: #e0e0e0;
+    --color-text-secondary: #a0a0a0;
+    --color-border: #444;
+    --card-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    --modal-backdrop: rgba(0, 0, 0, 0.7);
+    --in-app-notification-info: #333;
+    --in-app-notification-success: #143820;
+    --in-app-notification-error: #4a2528;
+    --in-app-notification-text-info: #a0a0a0;
+    --in-app-notification-text-success: #8ce99a;
+    --in-app-notification-text-error: #ffa8a8;
 }
 
-        if (targetViewId === 'homeView') {
-            renderDashboard();
-        }
-        
-        const isTaskView = targetViewId === 'tasksView';
-        openNewTaskModalBtn.style.display = isTaskView ? 'flex' : 'none';
-        get('search-container').style.display = isTaskView ? 'flex' : 'none';
-    };
 
-    // --- INITIALIZATION ---
-    const initialize = () => {
-        // Theme initialization
-        const themeToggle = get('themeToggle');
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.body.dataset.theme = savedTheme;
-        themeToggle.checked = savedTheme === 'dark';
-
-        themeToggle.addEventListener('change', () => {
-            const newTheme = themeToggle.checked ? 'dark' : 'light';
-            document.body.dataset.theme = newTheme;
-            localStorage.setItem('theme', newTheme);
-        });
-
-        loadData();
-addSampleData();
-        switchView('homeView'); // Set default view
-
-        // Sidebar navigation
-        get('homeLink').addEventListener('click', (e) => { e.preventDefault(); switchView('homeView'); });
-get('tasksLink').addEventListener('click', (e) => { e.preventDefault(); switchView('tasksView'); });
-        get('sitesLink').addEventListener('click', (e) => { e.preventDefault(); switchView('sitesView'); });
-        get('commercialLink').addEventListener('click', (e) => { e.preventDefault(); switchView('commercialView'); });
-        reportsLink.addEventListener('click', (e) => { e.preventDefault(); switchView('reportsView'); });
-taskStatusSelect.addEventListener('change', (e) => {
-            if (e.target.value === 'In Progress') {
-                progressContainer.style.display = 'block';
-            } else {
-                progressContainer.style.display = 'none';
-            }
-        });
-taskForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const assignee = taskAssigneeSelect.value, category = categorySelect.value;
-            if (!assignee || !category) return alert('Main task must have an assignee and category.');
-            
-            const oldStatus = currentEditingTask ? currentEditingTask.status : null;
-            
-const newStatus = taskStatusSelect.value;
-
-            let progress = null;
-            if (newStatus === 'In Progress') {
-                const progressVal = parseInt(taskProgressInput.value, 10);
-                if (!isNaN(progressVal) && progressVal >= 0 && progressVal <= 100) {
-                   
- progress = progressVal;
-                }
-            }
-
-            const taskData = {
-                name: taskNameInput.value,
-                description: taskDescriptionInput.value,
-                dueDate: dueDateInput.value,
-   
-             assignee,
-                category,
-                status: newStatus,
-                isUrgent: taskUrgentInput.checked,
-                progress: progress,
-                closedDate: newStatus === 'Closed' 
-? (currentEditingTask?.closedDate || new Date().toISOString()) : null
-            };
-if (currentEditingTask) {
-                Object.assign(currentEditingTask, taskData);
-if (newStatus === 'Closed' && oldStatus !== 'Closed') {
-                    logAction(currentEditingTask, `Task status changed to Closed.`, currentEditingTask.assignee);
+/* Global Styles & Reset */
+html, body { height: 100%;
+margin: 0; padding: 0; }
+body { font-family: var(--font-primary); background-color: var(--color-bg-page); color: var(--color-text-primary); line-height: 1.6; transition: background-color 0.3s, color 0.3s;}
+* { box-sizing: border-box;
 }
-                updateMainTaskDueDate(currentEditingTask);
-} else {
-                const newTask = { id: getNextId(), ...sanitizeTask({}), ...taskData };
-updateMainTaskDueDate(newTask);
-                tasks.push(newTask);
-            }
-            saveState();
-            closeModal(taskModal);
-        });
-settingsBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            openSettingsModal();
-        });
-queryAll('.settings-tab').forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                const targetTab = e.currentTarget.dataset.tab;
-                queryAll('.settings-tab').forEach(t => t.classList.remove('active'));
-                e.currentTarget.classList.add('active');
-                queryAll('.settings-tab-content').forEach(content => content.classList.remove('active'));
-            
-    get(`${targetTab}Tab`).classList.add('active');
-            });
-        });
-openPasswordModalBtn.addEventListener('click', () => {
-            openPasswordModal();
-        });
+textarea { resize: none; overflow-y: hidden; }
 
-        openWebsiteModalBtn.addEventListener('click', () => {
-            openWebsiteModal();
-        });
-settingsPersonForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const newName = settingsPersonNameInput.value.trim();
-            if (newName && !people[newName]) {
-                people[newName] = generateRandomColor();
-                saveState();
-                openSettingsModal();
-    
-            settingsPersonNameInput.value = '';
-            } else if (people[newName]) {
-                alert(`A person named "${newName}" already exists.`);
-            }
-        });
-settingsCategoryForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const newCat = settingsCategoryNameInput.value.trim();
-            if (newCat && !categories[newCat]) {
-                categories[newCat] = generateRandomColor();
-                saveState();
-                openSettingsModal();
-    
-            settingsCategoryNameInput.value = '';
-            } else if (categories[newCat]) {
-                alert(`A category named "${newCat}" already exists.`);
-            }
-        });
-settingsPasswordForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const id = passwordIdInput.value;
-            const service = settingsPasswordServiceInput.value.trim();
-            const username = settingsPasswordUsernameInput.value.trim();
-            const value = settingsPasswordValueInput.value.trim();
-            const link = settingsPasswordLinkInput.value.trim();
-          
-  if (service && username && value) {
-                if (id) { // Editing existing
-                    const password = passwords.find(p => p.id === id);
-                    if (password) {
-                      
-  Object.assign(password, { service, username, value, link });
-                    }
-                } else { // Adding new
-                    passwords.push(sanitizePassword({ service, username, value, link }));
-                }
-          
-      saveState();
-                closeModal(passwordModal);
-                openSettingsModal();
-            }
-        });
+/* Page Layout & Sidebar */
+.page-wrapper { display: grid; grid-template-columns: 80px 1fr; height: 100vh;
+overflow: hidden; }
+.sidebar { background-color: var(--color-bg-sidebar); display: flex; flex-direction: column; }
+.sidebar-header { padding: 1.25rem 0; text-align: center;
+border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.sidebar-menu-icon { font-size: 1.6rem; color: #aeb6bf; cursor: pointer; transition: color 0.2s ease;
+}
+.sidebar-menu-icon:hover { color: white; }
+.sidebar-nav { padding-top: 1rem; }
+.sidebar-nav ul { list-style: none; padding: 0; margin: 0;
+}
+.sidebar-nav a { display: flex; flex-direction: column; align-items: center; padding: 0.8rem 0; color: #ced4da; text-decoration: none; font-size: 0.75rem;
+transition: background-color 0.2s ease, color 0.2s ease; }
+.sidebar-nav a i { font-size: 1.2rem; margin-bottom: 0.3rem;
+}
+.sidebar-nav li.active a, .sidebar-nav a:hover { background-color: rgba(255, 255, 255, 0.1); color: white; }
+.sidebar-footer { margin-top: auto; text-align: center;
+padding: 1rem 0; border-top: 1px solid rgba(255,255,255,0.1); }
+.sidebar-footer a { color: white; font-size: 1.4rem; text-decoration: none; opacity: 0.8;
+transition: opacity 0.2s ease; }
+.sidebar-footer a:hover { opacity: 1; }
 
-        get('settingsWebsiteForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const id = get('websiteId').value;
-            const service = get('settingsWebsiteService').value.trim();
-            const username = get('settingsWebsiteUsername').value.trim();
-            const value = get('settingsWebsiteValue').value.trim();
-            const link = get('settingsWebsiteLink').value.trim();
-            if (service && username && value) {
-                if (id) { // Editing existing
-                    const website = websites.find(w => w.id === id);
-                    if (website) {
-                        Object.assign(website, { service, username, value, link });
-                    }
-                } else { // Adding new
-                    websites.push(sanitizeWebsite({ service, username, value, link }));
-                }
-                saveState();
-                closeModal(get('websiteModal'));
-                openSettingsModal();
-            }
-        });
-linkForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (!currentLinkTask) return;
-            const name = linkNameInput.value.trim();
-            const url = linkUrlInput.value.trim();
-            if (name && url) {
-                if (!currentLinkTask.links) currentLinkTask.links = [];
-     
-           currentLinkTask.links.push({ name, url });
-                saveState();
-                openLinkModal(currentLinkTask.id);
-                openTaskModal(currentEditingTask.id);
-                linkForm.reset();
-            }
-        });
-get('mainTaskLinksList').parentElement.querySelector('.add-link-btn-header').addEventListener('click', () => {
-            openLinkModal(currentEditingTask.id);
-        });
-openNewTaskModalBtn.addEventListener('click', () => openTaskModal());
-        deleteTaskBtn.addEventListener('click', () => { if (currentEditingTask && confirm('Delete this task?')) { tasks = tasks.filter(t => t.id !== currentEditingTask.id); saveState(); closeModal(taskModal); } });
-archiveTaskBtn.addEventListener('click', () => { if (currentEditingTask && confirm('Archive this task?')) { const task = findTaskById(currentEditingTask.id); task.isArchived = true; task.archivedDate = new Date().toISOString(); saveState(); closeModal(taskModal); } });
-addNewCategoryBtn.addEventListener('click', () => openModal(categoryModal));
-        addNewPersonBtn.addEventListener('click', () => { activeAssigneeSelect = taskAssigneeSelect; openModal(personModal); });
-        
-        // Reports View Listeners
-        get('openAssigneeReportConfigBtn').addEventListener('click', () => {
-            const userSelection = get('reportUserSelectionContainer');
-            const activeUsers = new Set();
-            tasks.filter(t => !t.isArchived).forEach(task => getAllAssignees(task).forEach(assignee => activeUsers.add(assignee)));
-            userSelection.innerHTML = `<div><label><input type="checkbox" id="reportSelectAllUsers"> <strong>Select All</strong></label></div>`;
-            Array.from(activeUsers).sort().forEach(user => {
-                userSelection.innerHTML += `<div><label><input type="checkbox" class="report-user-checkbox" value="${user}"> ${user}</label></div>`;
-            });
-            get('reportSelectAllUsers').addEventListener('change', (e) => queryAll('.report-user-checkbox').forEach(cb => cb.checked = e.target.checked));
-            openModal(get('reportConfigModal'));
-        });
-get('generateAssigneeReportBtn').addEventListener('click', generateAssigneeReport);
-        get('generateOverdueReportBtn').addEventListener('click', generateOverdueReport);
+/* Main Content & Top Bar */
+.main-content { display: flex;
+flex-direction: column; height: 100vh; overflow-y: hidden; }
+.top-bar { background-color: var(--color-bg-card); padding: 0.8rem 2rem; box-shadow: var(--shadow-soft); z-index: 10; flex-shrink: 0;
+transition: background-color 0.3s; }
+.header-content { display: flex; justify-content: space-between; align-items: center; }
+.header-actions { display: flex; align-items: center; gap: 1rem; }
+.top-bar-add-btn { background-color: var(--color-accent-primary); color: white; border: none; border-radius: var(--border-radius-sm);
+padding: 0.6rem 1.2rem; font-size: 1rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: background-color 0.2s ease;
+}
+.top-bar-add-btn:hover { background-color: #143820; }
 
-[assigneeFilter, categoryFilter, sortByDate, closedTasksFilter].forEach(el => el.addEventListener('change', renderKanbanBoard));
-        globalSearchInput.addEventListener('input', renderKanbanBoard);
-        categoryForm.addEventListener('submit', e => { e.preventDefault(); const newCat = newCategoryNameInput.value.trim(); if (newCat && !categories[newCat]) { categories[newCat] = generateRandomColor(); saveState(); categorySelect.value = newCat; } categoryForm.reset(); closeModal(categoryModal); });
-personForm.addEventListener('submit', e => { e.preventDefault(); const newName = newPersonNameInput.value.trim(); if (newName) { if (!people[newName]) { people[newName] = generateRandomColor(); saveState(); populateAllDropdowns(); } if (activeAssigneeSelect) { activeAssigneeSelect.value = newName; } } personForm.reset(); closeModal(personModal); });
-taskDescriptionInput.addEventListener('input', e => { e.target.style.height = 'auto'; e.target.style.height = (e.target.scrollHeight) + 'px'; });
-queryAll('.modal').forEach(modal => { modal.addEventListener('click', e => { if (e.target === modal) closeModal(modal); }); modal.querySelector('.close-button')?.addEventListener('click', () => closeModal(modal)); });
-        
-        // Data management event listeners
-        get('exportDataBtn').addEventListener('click', () => {
-            const data = { tasks, categories, people, passwords, websites };
-            const json = JSON.stringify(data, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const date = new Date().toISOString().split('T')[0];
-            a.download = `taskboard-backup-${date}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast('Data exported successfully!');
-        });
-        
-        get('importDataBtn').addEventListener('click', () => get('importFileInput').click());
-        get('importFileInput').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            if (!confirm('Are you sure you want to import data? This will overwrite all current data.')) {
-                e.target.value = ''; // Reset file input
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const data = JSON.parse(event.target.result);
-                    // Basic validation
-                    if (data && data.tasks && data.people && data.categories) {
-                        tasks = (data.tasks || []).map(sanitizeTask);
-                        people = data.people || {};
-                        categories = data.categories || {};
-                        passwords = (data.passwords || []).map(sanitizePassword);
-                        websites = (data.websites || []).map(sanitizeWebsite);
-                        saveState();
-                        showToast('Data imported successfully!');
-                        closeModal(settingsModal);
-                    } else {
-                        alert('Invalid data file.');
-                    }
-                } catch (err) {
-                    alert('Failed to parse data file. Please ensure it is a valid JSON backup.');
-                    console.error("Import error:", err);
-                } finally {
-                    e.target.value = ''; // Reset file input
-                }
-            };
-            reader.readAsText(file);
-        });
-
-        get('viewArchivedBtn').addEventListener('click', openArchiveModal);
-
-        get('archivedTasksList').addEventListener('click', (e) => {
-            const restoreBtn = e.target.closest('.restore-btn');
-            const deleteBtn = e.target.closest('.delete-perm-btn');
-            const li = e.target.closest('li');
-            if (!li) return;
-            const taskId = li.dataset.id;
-            
-            if (restoreBtn) {
-                const task = findTaskById(taskId);
-                if (task) {
-                    task.isArchived = false;
-                    task.archivedDate = null;
-                    li.classList.add('fading-out');
-                    setTimeout(() => {
-                        saveState();
-                        openArchiveModal(); // Re-render the modal
-                    }, 300);
-                }
-            }
-
-            if (deleteBtn) {
-                if (confirm('Are you sure you want to permanently delete this task? This action cannot be undone.')) {
-                    tasks = tasks.filter(t => t.id !== taskId);
-                    li.classList.add('fading-out');
-                     setTimeout(() => {
-                        saveState();
-                        openArchiveModal(); // Re-render the modal
-                    }, 300);
-                }
-            }
-        });
-
-        ['dashboard-urgent-tasks', 'dashboard-upcoming-tasks'].forEach(id => {
-            get(id).addEventListener('click', (e) => {
-                const li = e.target.closest('li');
-                if (li && li.dataset.taskId) {
-                    openTaskModal(li.dataset.taskId);
-                }
-            });
-        });
-
-        renderAndPopulate();
-    };
-initialize();
-})();
-// Utility: escape HTML
-function escapeHtml(str){
-  return (str||'').replace(/[&<>"']/g, (s)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+.search-container { position: relative; }
+.search-container i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--color-text-secondary); }
+#globalSearchInput {
+    padding: 0.6rem 1rem 0.6rem 2.5rem;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg-input);
+    color: var(--color-text-primary);
+    width: 250px;
+    transition: all 0.3s;
 }
 
-// === Compact Subtasks TABLE Renderer ===
-function renderCompactSubtasksTable(task){
-  const container = document.createElement('div');
-  container.className = 'compact-subtasks';
-  const table = document.createElement('table');
-  table.className = 'compact-table';
-  table.innerHTML = `
-    <thead>
-      <tr>
-        <th style="width:40%;">Title</th>
-        <th>Assignee</th>
-        <th>Due</th>
-        <th>Status</th>
-        <th style="text-align:right;">Actions</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-    <tfoot>
-      <tr class="quick-add-row">
-        <td><input class="qa-title" type="text" placeholder="Add sub-task..."></td>
-        <td>
-          <select class="qa-assign">
-            <option value="" disabled selected>Assignee...</option>
-            ${Object.keys(people).sort().map(p => `<option value="${p}">${p}</option>`).join('')}
-          </select>
-        </td>
-        <td><input class="qa-due" type="date"></td>
-        <td>
-          <select class="qa-status">${KANBAN_STATUSES.map(s => `<option value="${s}" ${s==='Open'?'selected':''}>${s}</option>`).join('')}</select>
-        </td>
-        <td style="text-align:right;"><button type="button" class="btn btn-primary qa-add"><i class="fas fa-plus"></i></button></td>
-      </tr>
-    </tfoot>`;
-  const tbody = table.querySelector('tbody');
-
-  const addRow = (node, level=0, parent=null) => {
-    if (node.status === 'Closed') return;
-    const tr = document.createElement('tr');
-    tr.dataset.id = node.id;
-    tr.innerHTML = `
-      <td class="cell-title">
-        <span class="tree-indent" style="padding-left:${level*16}px"></span>
-        <input class="cell-title-input" type="text" value="${escapeHtml(node.name)}">
-      </td>
-      <td class="cell-assign">
-        <div class="assignee">
-          <div class="card-assignee-icon" style="background-color:${people[node.assignee]||'#ccc'}" title="${node.assignee||''}">${getInitials(node.assignee||'')}</div>
-          <select class="cell-assign-select">
-            ${Object.keys(people).sort().map(p => `<option value="${p}" ${node.assignee===p?'selected':''}>${p}</option>`).join('')}
-          </select>
-        </div>
-      </td>
-      <td class="cell-due"><input class="cell-due-input" type="date" value="${(node.dueDate||'').split('T')[0]||node.dueDate||''}"></td>
-      <td class="cell-status">
-        <select class="cell-status-select">${KANBAN_STATUSES.map(s => `<option value="${s}" ${node.status===s?'selected':''}>${s}</option>`).join('')}</select>
-      </td>
-      <td class="cell-actions" style="text-align:right; white-space:nowrap;">
-        <button class="row-btn add-child" title="Add child"><i class="fas fa-level-down-alt" style="transform:rotate(90deg);"></i></button>
-        <button class="row-btn add-sibling" title="Add sibling"><i class="fas fa-plus"></i></button>
-        <button class="row-btn open-full" title="Open details"><i class="fas fa-external-link-alt"></i></button>
-        <button class="row-btn delete" title="Delete"><i class="fas fa-trash"></i></button>
-      </td>`;
-
-    tr.querySelector('.cell-title-input').addEventListener('blur', (e)=>{
-      const v = e.target.value.trim(); if (v && v !== node.name) { node.name = v; saveState(); }
-    });
-    tr.querySelector('.cell-assign-select').addEventListener('change', (e)=>{
-      node.assignee = e.target.value; saveState(); openTaskModal(currentEditingTask.id); const t=get('toggleCompactSubtasks'); if(t) t.checked=true;
-    });
-    tr.querySelector('.cell-due-input').addEventListener('change', (e)=>{ node.dueDate = e.target.value; saveState(); });
-    tr.querySelector('.cell-status-select').addEventListener('change', (e)=>{
-      node.status = e.target.value; if (node.status==='Closed') node.closedDate=new Date().toISOString(); saveState(); openTaskModal(currentEditingTask.id); const t=get('toggleCompactSubtasks'); if(t) t.checked=true;
-    });
-
-    tr.querySelector('.open-full').addEventListener('click', ()=>{ expandedSubtasks.add(node.id); saveState(); openTaskModal(currentEditingTask.id); const t=get('toggleCompactSubtasks'); if(t) t.checked=false; });
-    tr.querySelector('.delete').addEventListener('click', ()=>{
-      if (!confirm('Delete this sub-task?')) return;
-      const arr = parent ? parent.subtasks : currentEditingTask.subtasks;
-      const idx = arr.indexOf(node); if (idx>-1) arr.splice(idx,1);
-      saveState(); openTaskModal(currentEditingTask.id); const t=get('toggleCompactSubtasks'); if(t) t.checked=true;
-    });
-    tr.querySelector('.add-child').addEventListener('click', ()=>{
-      node.subtasks = node.subtasks || [];
-      node.subtasks.push({ id:getNextId('SUB'), name:'New sub-task', description:'', assignee:Object.keys(people)[0]||'', dueDate:new Date().toISOString().split('T')[0], status:'Open', subtasks:[], log:[], links:[] });
-      saveState(); openTaskModal(currentEditingTask.id); const t=get('toggleCompactSubtasks'); if(t) t.checked=true;
-    });
-    tr.querySelector('.add-sibling').addEventListener('click', ()=>{
-      const arr = parent ? parent.subtasks : currentEditingTask.subtasks;
-      const pos = arr.indexOf(node);
-      arr.splice(pos+1,0,{ id:getNextId('SUB'), name:'New sub-task', description:'', assignee:Object.keys(people)[0]||'', dueDate:new Date().toISOString().split('T')[0], status:'Open', subtasks:[], log:[], links:[] });
-      saveState(); openTaskModal(currentEditingTask.id); const t=get('toggleCompactSubtasks'); if(t) t.checked=true;
-    });
-
-    tbody.appendChild(tr);
-    (node.subtasks||[]).forEach(child => addRow(child, level+1, node));
-  };
-
-  (task.subtasks||[]).forEach(st => addRow(st, 0, null));
-  table.querySelector('.qa-add').addEventListener('click', ()=>{
-    const title = table.querySelector('.qa-title').value.trim();
-    const assign = table.querySelector('.qa-assign').value;
-    const due = table.querySelector('.qa-due').value;
-    const status = table.querySelector('.qa-status').value;
-    if(!title || !assign || !due){ alert('Please fill title, assignee, and due date.'); return; }
-    task.subtasks = task.subtasks || [];
-    task.subtasks.push({ id:getNextId('SUB'), name:title, description:'', assignee:assign, dueDate:due, status, subtasks:[], log:[], links:[] });
-    saveState(); openTaskModal(task.id); const t=get('toggleCompactSubtasks'); if(t) t.checked=true;
-  });
-
-  container.appendChild(table);
-  return container;
+/* View Containers */
+.view-container {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+#tasksView {
+    padding: 0;
+}
+#manualView {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 900px;
+    margin: 0 auto;
 }
 
-// Wire toolbar events & persist state
-function ensureCompactToolbar(){
-  const tb = document.getElementById('subtasksToolbar');
-  const cb = document.getElementById('toggleCompactSubtasks');
-  if (!tb || !cb) return;
-  try { cb.checked = localStorage.getItem('compactSubtasksEnabled') === '1'; } catch(e){}
-  if (!cb.dataset.wired){
-    cb.addEventListener('change', ()=>{
-      try { localStorage.setItem('compactSubtasksEnabled', cb.checked ? '1' : '0'); } catch(e){}
-      openTaskModal(currentEditingTask.id);
-    });
-    tb.addEventListener('click', (e)=>{
-      const clickedSwitch = e.target.closest && e.target.closest('.switch');
-      const clickedText = e.target.classList && e.target.classList.contains('switch-text');
-      if (clickedSwitch || clickedText){
-        cb.checked = !cb.checked;
-        cb.dispatchEvent(new Event('change', {bubbles:true}));
-        e.preventDefault();
-      }
-    });
-    cb.dataset.wired = '1';
-  }
-} catch(e){}
-  if (!cb.dataset.wired){
-    cb.addEventListener('change', ()=>{
-      try { localStorage.setItem('compactSubtasksEnabled', cb.checked ? '1' : '0'); } catch(e){}
-      openTaskModal(currentEditingTask.id);
-    });
-    tb.addEventListener('click', (e)=>{
-      if (e.target.classList && e.target.classList.contains('switch-text')){
-        cb.checked = !cb.checked;
-        cb.dispatchEvent(new Event('change', {bubbles:true}));
-      }
-    });
-    cb.dataset.wired = '1';
-  }
+/* Manual View */
+.manual-sections h3 {
+    margin-top: 2rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--color-border);
 }
+.manual-sections h4 {
+    margin-top: 1.5rem;
+    color: var(--color-accent-primary);
+}
+.manual-sections ul {
+    list-style-type: disc;
+    padding-left: 20px;
+    margin-bottom: 1.5rem;
+}
+
+/* Dashboard */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+    margin-bottom: 2rem;
+}
+.stat-card {
+    background-color: var(--color-bg-card);
+    border-radius: var(--border-radius-md);
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border: 1px solid var(--color-border);
+    transition: all 0.3s ease;
+}
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-soft);
+}
+.stat-card-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+}
+.stat-card-icon.open { background-color: #6c757d; }
+.stat-card-icon.in-progress { background-color: #B4975A; }
+.stat-card-icon.overdue { background-color: #dc3545; }
+.stat-card-icon.due-today { background-color: #fd7e14; }
+.stat-card-icon.due-week { background-color: #0dcaf0; }
+.stat-card-icon.closed { background-color: #1E4D2B; }
+.stat-card-info { display: flex; flex-direction: column; }
+.stat-card-title { font-size: 0.9rem; color: var(--color-text-secondary); text-transform: uppercase; font-weight: 500;}
+.stat-card-value { font-size: 1.75rem; font-weight: 600; color: var(--color-text-primary); }
+.dashboard-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+.dashboard-section h3 {
+    border-bottom: 2px solid var(--color-border);
+    padding-bottom: 0.5rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.urgent-icon-header { color: var(--color-accent-danger); }
+.dashboard-task-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.dashboard-task-list li {
+    background-color: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-sm);
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.dashboard-task-list li:hover {
+    background-color: var(--color-bg-input);
+    border-color: var(--color-accent-primary);
+}
+.dashboard-task-item-title { font-weight: 500; }
+.dashboard-task-item-due { font-size: 0.8rem; color: var(--color-text-secondary); }
+
+
+/* Kanban Filters */
+.kanban-filters { background-color: var(--color-bg-card);
+padding: 1rem 2rem; display: flex; flex-wrap: wrap; gap: 1.5rem; border-bottom: 1px solid var(--color-border); flex-shrink: 0; transition: background-color 0.3s, border-color 0.3s; }
+.filter-group { display: flex;
+flex-direction: column; gap: 0.5rem; }
+.filter-group label { font-size: 0.85rem; color: var(--color-text-secondary); font-weight: 500; }
+.kanban-filters select { padding: 0.6rem 1rem;
+border: 1px solid var(--color-border); border-radius: var(--border-radius-sm); font-size: 0.9rem; background-color: var(--color-bg-input); color: var(--color-text-primary); cursor: pointer; min-width: 180px;
+transition: all 0.3s; }
+
+/* Kanban Board, Columns, and Cards */
+.kanban-board { display: flex; padding: 1.5rem; gap: 1.5rem; overflow-x: auto; flex-grow: 1; min-height: 0;
+}
+.kanban-column { background-color: var(--color-bg-column); border-radius: var(--border-radius-md); padding: 1rem; width: 320px; flex-shrink: 0; display: flex; flex-direction: column; transition: background-color 0.3s;
+}
+.kanban-column.drag-over { background-color: #d1d9e0; }
+.column-header { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: var(--color-text-primary); display: flex; justify-content: space-between; align-items: center;
+padding: 0 0.5rem; }
+.column-header .task-count { color: white; font-size: 0.8rem; padding: 0.2rem 0.6rem; border-radius: 10px; font-weight: 500;
+}
+.tasks-container { overflow-y: auto; flex-grow: 1; min-height: 0; padding: 0 0.5rem; margin: 0 -0.5rem; }
+.task-card { position: relative; background-color: var(--color-bg-card);
+border-radius: var(--border-radius-md); padding: 0.8rem 1rem 1rem 1rem; margin-bottom: 1rem; box-shadow: var(--card-shadow); border: 2px solid var(--card-category-color, transparent); transition: all 0.3s ease;
+cursor: grab; overflow: hidden; animation: fadeIn 0.4s ease-out; }
+.task-card.late { background-color: #ffebee; padding-top: 1.8rem; }
+.task-card.fading-out { opacity: 0; transform: scale(0.9); }
+body[data-theme="dark"] .task-card.late { background-color: #4a2528; }
+.task-card:active { cursor: grabbing; }
+.task-card.dragging { opacity: 0.5; transform: scale(1.05);
+}
+
+/* Urgent Icon on Task Card */
+.urgent-icon {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    color: var(--color-accent-danger);
+    font-size: 1.2rem;
+    z-index: 1;
+}
+
+.task-card-quick-close {
+    position: absolute;
+    top: 6px;
+    right: 30px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #28a745;
+    font-size: 1.2rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 2;
+}
+
+.task-card:hover .task-card-quick-close {
+    opacity: 0.7;
+}
+
+.task-card .task-card-quick-close:hover {
+    opacity: 1;
+}
+
+/* Today's Tasks Column */
+.kanban-column.todays-tasks {
+    background-color: #fff9db;
+    border: 1px solid var(--color-accent-warning);
+}
+body[data-theme="dark"] .kanban-column.todays-tasks { background-color: #443c18; border-color: var(--color-accent-warning); }
+
+.kanban-column.todays-tasks .column-header {
+    color: #785a28;
+}
+body[data-theme="dark"] .kanban-column.todays-tasks .column-header { color: #d8b873; }
+
+.kanban-column.this-week-tasks {
+    background-color: #e6f7ff;
+    border: 1px solid #91d5ff;
+}
+body[data-theme="dark"] .kanban-column.this-week-tasks { background-color: #1e3a4c; border-color: #91d5ff; }
+
+.kanban-column.this-week-tasks .column-header {
+    color: #0050b3;
+}
+body[data-theme="dark"] .kanban-column.this-week-tasks .column-header { color: #8cbef3; }
+
+.task-card-title { 
+    font-weight: 600; 
+    margin-bottom: 0.5rem; 
+    margin-top: 0; 
+    display: flex; 
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem; 
+}
+
+.title-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-title-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.subtask-indicator-label {
+    background-color: var(--color-accent-secondary);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7em;
+    font-weight: 700;
+    text-transform: uppercase;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.task-name-text {
+    font-weight: 600;
+}
+
+.parent-task-indicator {
+    color: var(--color-text-secondary);
+    font-weight: 400;
+    font-size: 0.85em;
+    margin-top: 2px;
+    padding-left: 0.25rem;
+}
+
+.title-assignee-stack { 
+    display: flex; 
+    flex-shrink: 0; 
+    padding-top: 2px;
+}
+
+.task-card-description { font-size: 0.9rem; color: var(--color-text-secondary); margin-bottom: 0.8rem;
+}
+.card-assignee-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 0.75rem; font-weight: 600;
+border: 2px solid white; flex-shrink: 0; }
+.title-assignee-stack .card-assignee-icon { margin-left: -10px; }
+.title-assignee-stack .card-assignee-icon:first-child { margin-left: 0; }
+.task-card-footer { display: flex;
+justify-content: space-between; align-items: center; margin-top: 1rem; font-size: 0.85rem; color: var(--color-text-secondary); }
+.task-card-due-date { display: flex; align-items: center; gap: 0.3rem;
+}
+.task-card-category-tag { font-size: 0.7rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 4px; color: white; }
+.overdue-label { position: absolute; top: 0;
+left: 0; background-color: var(--color-accent-danger); color: white; padding: 0.1rem 0.5rem; font-size: 0.65rem; font-weight: 700; border-radius: var(--border-radius-md) 0 var(--border-radius-sm) 0; text-transform: uppercase;
+letter-spacing: 0.05em; }
+
+/* Progress Bar */
+.progress-bar-container {
+    height: 8px;
+    width: 100%;
+    background-color: var(--color-bg-input);
+    border-radius: 4px;
+    margin-top: 1rem;
+    overflow: hidden; transition: background-color 0.3s;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--color-accent-warning);
+    border-radius: 4px;
+    transition: width 0.4s ease-in-out;
+}
+
+
+/* Modal Styling */
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
+background: var(--modal-backdrop); justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease, background-color 0.3s;
+}
+.modal.is-active { display: flex; opacity: 1; visibility: visible; }
+.modal-content { background-color: var(--color-bg-card); border-radius: var(--border-radius-md); width: 100%; max-height: 90vh;
+box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; animation: slideInTop 0.4s ease-out forwards;
+transition: background-color 0.3s; position: relative;}
+.modal-content.modal-sm { max-width: 400px; }
+.modal-content.modal-md { max-width: 600px; }
+.modal-content.modal-lg { max-width: 950px; }
+.modal-content.modal-xl { max-width: 1200px; }
+.modal-header { display: flex;
+justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--color-border); transition: border-color 0.3s; }
+.close-button { background: none; border: none; font-size: 2rem;
+color: var(--color-text-secondary); cursor: pointer; line-height: 1; }
+#taskForm, #categoryForm, #personForm { display: contents; }
+.form-body { padding: 1.5rem; overflow-y: auto;
+}
+.main-task-details { display: flex; gap: 2rem; }
+.form-left, .form-right { flex: 1 1 50%; }
+.form-body label { display: block; font-weight: 500;
+color: var(--color-text-secondary); margin-bottom: 0.5rem; font-size: 0.9rem; }
+.form-body input, .form-body select, .form-body textarea { width: 100%; padding: 0.7rem 0.9rem; margin-bottom: 1.2rem;
+border: 1px solid var(--color-border); border-radius: var(--border-radius-sm); font-size: 0.95rem; background-color: var(--color-bg-input); color: var(--color-text-primary); transition: all 0.3s; }
+.input-with-button { display: flex; align-items: center; gap: 0.5rem;
+margin-bottom: 1.2rem; }
+.input-with-button select, .input-with-button input { flex-grow: 1; margin-bottom: 0; }
+.add-icon-btn { background-color: var(--color-accent-secondary); color: white; border: none;
+border-radius: var(--border-radius-sm); width: 38px; height: 38px; font-size: 1rem; cursor: pointer; flex-shrink: 0; }
+#manageTaskHeader { display: flex; align-items: center; gap: 1rem;
+padding: 1rem; margin-bottom: 1rem; background: var(--color-bg-input); border-radius: var(--border-radius-md); }
+#manageTaskHeader h4 { margin: 0; font-size: 1.2rem; }
+.header-assignee { display: flex;
+align-items: center; gap: 0.5rem; font-weight: 500; }
+.form-group-checkbox { display: flex; align-items: center; margin-top: 1rem; gap: 0.5rem;
+}
+.form-group-checkbox input[type="checkbox"] { width: auto; margin-bottom: 0; }
+.form-group-checkbox label { margin-bottom: 0; font-weight: normal;
+}
+#progress-container {
+    margin-bottom: 1.2rem;
+}
+#progress-container input {
+    margin-bottom: 0;
+}
+
+
+/* Sub-task and Log Styling */
+.section-divider { border: none; border-top: 1px solid var(--color-border); margin: 1.5rem 0;
+}
+.sub-task-container { border-left: 3px solid; margin-bottom: 1rem; border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0; }
+.sub-task-container.subtask-color-1 { background-color: var(--subtask-color-1); border-color: #74c0fc;
+}
+.sub-task-container.subtask-color-2 { background-color: var(--subtask-color-2); border-color: #66d9e8; }
+.sub-task-container.subtask-color-3 { background-color: var(--subtask-color-3); border-color: #8ce99a; }
+.sub-task-container.subtask-color-4 { background-color: var(--subtask-color-4); border-color: #ffd43b;
+}
+.sub-task-container.subtask-color-5 { background-color: var(--subtask-color-5); border-color: #fef2f2; }
+.sub-task-header { padding: 0.5rem 1rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+cursor: pointer; position: relative; }
+.sub-task-toggle { width: 16px; text-align: center; transition: transform 0.2s ease; color: var(--color-text-secondary);
+}
+.sub-task-header.collapsed .sub-task-toggle { transform: rotate(-90deg); }
+.sub-task-title { font-weight: 600; flex-grow: 1; }
+.sub-task-assignee-icon { margin: 0;
+}
+.sub-task-controls { display: flex; align-items: center; gap: 0.5rem; margin-left: auto;}
+.sub-task-status, .sub-task-due-date {
+    padding: 0.2rem 0.4rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.8rem;
+    background-color: #fff;
+    cursor: pointer;
+}
+.sub-task-due-date {
+    font-family: var(--font-primary);
+    color: var(--color-text-secondary);
+}
+.sub-task-quick-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #28a745;
+    font-size: 1.2rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+.sub-task-header:hover .sub-task-quick-close {
+    opacity: 0.7;
+}
+.sub-task-header .sub-task-quick-close:hover {
+    opacity: 1;
+}
+.sub-task-body { padding: 0 1rem 1rem 1rem; max-height: 2000px; overflow: hidden; transition: all 0.3s ease-in-out; }
+.sub-task-body.collapsed { max-height: 0;
+padding: 0 1rem; opacity: 0; }
+.sub-task-description { font-size: 0.9rem; color: var(--color-text-secondary); margin: 0.5rem 0 1rem 0; padding-left: 28px;
+}
+.add-subtask-form { margin-top: 1rem; padding: 1rem; border: 1px dashed #b2f2bb; border-radius: var(--border-radius-md); background-color: #f0fdf4; }
+.add-subtask-form h4 { margin-top: 0;
+}
+.log-controls { margin-top: 1rem; padding-left: 28px; }
+.log-controls-wrapper { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+}
+.log-controls h4 { font-size: 0.9rem; margin: 0 0 0.5rem 0; color: var(--color-text-secondary); }
+.update-controls { display: flex; gap: 0.75rem; align-items: center;
+flex-grow: 1; }
+.update-controls input { margin-bottom: 0; }
+.chaser-controls { display: flex; gap: 0.75rem; align-items: center; }
+.aggregated-log-container { font-size: 0.9rem;
+max-height: 300px; overflow-y: auto; background: var(--color-bg-input); border-radius: var(--border-radius-sm); padding: 1rem; }
+.log-entry { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.75rem;
+}
+.log-entry .card-assignee-icon { margin-left: 0; flex-shrink: 0; width: 24px; height: 24px; font-size: 0.7rem; }
+.log-task-tag { font-size: 0.75rem; font-weight: 600;
+padding: 0.1rem 0.5rem; border-radius: 4px; background-color: var(--color-accent-secondary); color: white; margin-right: 0.5rem; }
+.log-entry .timestamp { font-weight: 500; color: #555; font-size: 0.8rem;
+}
+
+/* Links Section */
+.links-section { margin-top: 1rem; }
+.links-section h4 { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;
+}
+.add-link-btn-header { background: none; border: none; color: var(--color-accent-primary); font-size: 1.1rem; cursor: pointer; }
+.links-list { list-style: none; padding: 0; margin: 0;
+font-size: 0.9rem; }
+.links-list li { display: flex; justify-content: space-between; align-items: center; padding: 0.25rem 0; }
+.links-list a { color: var(--color-accent-primary);
+text-decoration: none; }
+.links-list a:hover { text-decoration: underline; }
+
+/* Reports View */
+.reports-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+.report-card {
+    background-color: var(--color-bg-card);
+    border-radius: var(--border-radius-md);
+    padding: 1.5rem;
+    border: 1px solid var(--color-border);
+    box-shadow: var(--card-shadow);
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+}
+.report-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+}
+body[data-theme="dark"] .report-card:hover {
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+.report-card-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: var(--color-accent-primary);
+}
+.report-card-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+}
+.report-card-description {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    flex-grow: 1;
+    margin-bottom: 1.5rem;
+}
+
+.report-user-selection { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1rem; border: 1px solid var(--color-border);
+border-radius: var(--border-radius-sm); }
+.report-user-selection label { display: flex; align-items: center; gap: 0.5rem; }
+
+/* Settings Modal */
+.settings-container { display: flex;
+}
+.settings-tabs { display: flex; flex-direction: column; border-right: 1px solid var(--color-border); padding-right: 1.5rem; transition: border-color 0.3s; }
+.settings-tab { background: none; border: none; padding: 1rem;
+font-size: 1rem; cursor: pointer; text-align: left; border-radius: var(--border-radius-md); display: flex; align-items: center; gap: 0.75rem; width: 100%; color: var(--color-text-secondary);
+}
+.settings-tab.active { background-color: var(--color-bg-input); color: var(--color-accent-primary); font-weight: 600; }
+.settings-content { flex-grow: 1; padding: 0 1.5rem; position: relative;}
+.settings-tab-content { display: none;
+}
+.settings-tab-content.active { display: block; animation: fadeIn 0.4s; }
+.settings-section { margin-top: 1.5rem; }
+.theme-switcher, .data-actions { display: flex; align-items: center; justify-content: space-between; max-width: 400px; }
+.data-actions { justify-content: flex-start; gap: 1rem; }
+
+
+.settings-column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+}
+.settings-add-new-btn {
+    background-color: var(--color-accent-primary);
+    width: auto;
+    height: auto;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+}
+.settings-column-header h3 {
+    margin: 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+    flex-grow: 1;
+    transition: border-color 0.3s; }
+.settings-column h3 {
+    margin-top: 1rem;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+.settings-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+.settings-form input {
+    flex-grow: 1;
+    margin-bottom: 0;
+}
+.settings-form button {
+    flex-shrink: 0;
+    padding: 0.5rem 1rem;
+}
+.settings-form-grid {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+.settings-form-grid button {
+    grid-column: 1 / -1;
+}
+.settings-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+.settings-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    border-radius: var(--border-radius-sm);
+    transition: background-color 0.2s;
+    opacity: 1; transition: opacity 0.3s ease-out; }
+.settings-list li.fading-out { opacity: 0; }
+.settings-list li:nth-child(odd) {
+    background-color: var(--color-bg-input);
+}
+.settings-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.settings-color-swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    cursor: pointer;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+.color-input {
+    width: 0;
+    height: 0;
+    padding: 0;
+    border: none;
+    opacity: 0;
+    position: absolute;
+}
+.settings-delete-btn {
+    background: none;
+    border: none;
+    color: var(--color-accent-danger);
+    cursor: pointer;
+    font-size: 1.1rem;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    margin-left: 0.5rem;
+}
+.settings-delete-btn:hover {
+    opacity: 1;
+}
+.password-item-details {
+    flex-grow: 1;
+}
+.password-item-details strong {
+    display: block;
+    font-size: 1rem;
+}
+.password-item-details small {
+    color: var(--color-text-secondary);
+    display: block;
+}
+.password-field-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.password-field-container input {
+    flex-grow: 1;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font-family: monospace;
+}
+.password-action-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-size: 1rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+.password-action-btn:hover {
+    opacity: 1;
+}
+.security-warning {
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+    padding: 1rem;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+}
+body[data-theme="dark"] .security-warning { background-color: #4a3c0a; border-color: #796213; color: #f3d97c; }
+
+#aboutTab .version-badge {
+    background-color: var(--color-accent-primary);
+    color: white;
+    padding: 0.25rem 0.6rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+#aboutTab ul {
+    list-style-type: disc;
+    padding-left: 20px;
+}
+#aboutTab ul li {
+    margin-bottom: 0.5rem;
+}
+
+
+/* Buttons & Footer */
+.btn { padding: 0.7rem 1.5rem; border-radius: var(--border-radius-sm);
+font-size: 0.95rem; font-weight: 500; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn-primary { background-color: var(--color-accent-primary); color: white; }
+.btn-danger { background-color: var(--color-accent-danger); color: white; }
+.btn-warning { background-color: var(--color-accent-warning);
+color: #212529; }
+.btn-secondary { background-color: var(--color-accent-secondary); color: white; }
+.btn-chaser { font-size: 0.8rem; padding: 0.3rem 0.7rem; background-color: transparent;
+border: 1px solid var(--color-accent-secondary); color: var(--color-accent-secondary); }
+.btn-chaser:hover { background-color: var(--color-accent-secondary); color: white; }
+.modal-footer { display: flex; gap: 1rem;
+padding: 1rem 1.5rem; border-top: 1px solid var(--color-border); background-color: #f8f9fa; transition: all 0.3s; }
+body[data-theme="dark"] .modal-footer { background-color: #2c2c2c; }
+
+/* Toast Notification */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 10px 20px;
+    border-radius: var(--border-radius-sm);
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+.toast.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* In-app Notification */
+.in-app-notification {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius-md);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.9rem;
+    animation: slideInRight 0.3s ease-out;
+    transition: transform 0.3s, opacity 0.3s;
+    z-index: 10;
+}
+.in-app-notification.hide {
+    opacity: 0;
+    transform: translateX(100%);
+}
+.in-app-notification-info {
+    background-color: var(--in-app-notification-info);
+    color: var(--in-app-notification-text-info);
+}
+.in-app-notification-success {
+    background-color: var(--in-app-notification-success);
+    color: var(--in-app-notification-text-success);
+}
+.in-app-notification-error {
+    background-color: var(--in-app-notification-error);
+    color: var(--in-app-notification-text-error);
+}
+.close-notification-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.7;
+}
+.close-notification-btn:hover {
+    opacity: 1;
+}
+
+/* Print Styles */
+@media print {
+    body > *:not(.print-container) { display: none !important;
+    }
+    .print-container { display: block !important; }
+    .report-table { width: 100%; border-collapse: collapse;
+    font-size: 10pt; }
+    .report-table th, .report-table td { border: 1px solid #ccc; padding: 8px; text-align: left;
+    }
+    .report-table th { background-color: #f2f2f2; }
+    .report-table ul { padding-left: 20px; margin: 0;
+    }
+}
+.print-container { display: none; }
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--color-text-secondary);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+/* Theme Switcher Toggle */
+.switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; }
+input:checked + .slider { background-color: var(--color-accent-primary); }
+input:focus + .slider { box-shadow: 0 0 1px var(--color-accent-primary); }
+input:checked + .slider:before { transform: translateX(26px); }
+.slider.round { border-radius: 34px; }
+.slider.round:before { border-radius: 50%; }
+
+
+@keyframes slideInTop { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1;
+} }
+@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+@media (max-width: 1200px) {
+    .settings-body { grid-template-columns: 1fr 1fr;
+    }
+    .settings-column:last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 768px) { .page-wrapper { grid-template-columns: 1fr;
+} .sidebar { display: none; } .kanban-board { flex-direction: column; } .kanban-column { width: 100%; max-width: none;
+} .settings-body { grid-template-columns: 1fr; } .settings-container { flex-direction: column; } .settings-tabs { flex-direction: row; border-right: none;
+border-bottom: 1px solid var(--color-border); padding-right: 0; padding-bottom: 1rem; } .settings-content { padding-left: 0; padding-top: 1.5rem; padding-right: 0; } }
