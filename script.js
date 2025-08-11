@@ -414,7 +414,7 @@ taskProgressInput.value = task.progress || '';
             [deleteTaskBtn, archiveTaskBtn, subTaskSection, mainLogControls, logSummarySection].forEach(el => el.style.display = 'block');
 subtasksListContainer.innerHTML = '';
 ensureCompactToolbar();
-if (get('toggleCompactSubtasks') && get('toggleCompactSubtasks').checked) {
+if (document.getElementById('toggleCompactSubtasks') && document.getElementById('toggleCompactSubtasks').checked) {
   subtasksListContainer.appendChild(renderCompactSubtasksTable(task));
   addSubTaskFormContainer.innerHTML = '';
 } else {
@@ -422,9 +422,9 @@ if (get('toggleCompactSubtasks') && get('toggleCompactSubtasks').checked) {
   addSubTaskFormContainer.innerHTML = '';
   addSubTaskFormContainer.appendChild(createSubtaskForm(task));
 }
-            mainLogControls.innerHTML = '';
-            mainLogControls.appendChild(createLogControls(task));
-            renderLogSummary(task);
+mainLogControls.innerHTML = '';
+mainLogControls.appendChild(createLogControls(task));
+renderLogSummary(task);
 } else {
             modalTitle.textContent = 'New Task';
 taskUrgentInput.checked = false;
@@ -1212,11 +1212,10 @@ queryAll('.modal').forEach(modal => { modal.addEventListener('click', e => { if 
     };
 initialize();
 })();
-// === Compact Subtasks: utilities ===
-const __compactPrefKey = 'compactSubtasksEnabled';
-function isCompactEnabled(){ try { return localStorage.getItem(__compactPrefKey)==='1'; } catch(e){ return false; } }
-function setCompactEnabled(v){ try { localStorage.setItem(__compactPrefKey, v?'1':'0'); } catch(e){} }
-function escapeHtml(str){ return (str||'').replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[s]); }
+// Utility: escape HTML
+function escapeHtml(str){
+  return (str||'').replace(/[&<>"']/g, (s)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
 
 // === Compact Subtasks TABLE Renderer ===
 function renderCompactSubtasksTable(task){
@@ -1331,13 +1330,18 @@ function renderCompactSubtasksTable(task){
   return container;
 }
 
+// Wire toolbar events & persist state
 function ensureCompactToolbar(){
-  const tb = get('subtasksToolbar');
-  const cb = get('toggleCompactSubtasks');
+  const tb = document.getElementById('subtasksToolbar');
+  const cb = document.getElementById('toggleCompactSubtasks');
   if (!tb || !cb) return;
-  cb.checked = isCompactEnabled();
+  // init from storage
+  try { cb.checked = localStorage.getItem('compactSubtasksEnabled') === '1'; } catch(e){}
   if (!cb.dataset.wired){
-    cb.addEventListener('change', ()=>{ setCompactEnabled(cb.checked); openTaskModal(currentEditingTask.id); });
+    cb.addEventListener('change', ()=>{
+      try { localStorage.setItem('compactSubtasksEnabled', cb.checked ? '1' : '0'); } catch(e){}
+      openTaskModal(currentEditingTask.id);
+    });
     tb.addEventListener('click', (e)=>{
       if (e.target.classList && e.target.classList.contains('switch-text')){
         cb.checked = !cb.checked;
