@@ -759,9 +759,23 @@ input:checked + .slider:before { transform: translateX(26px); }
 } .sidebar { display: none; } .kanban-board { flex-direction: column; } .kanban-column { width: 100%; max-width: none;
 } .settings-body { grid-template-columns: 1fr; } .settings-container { flex-direction: column; } .settings-tabs { flex-direction: row; border-right: none;
 border-bottom: 1px solid var(--color-border); padding-right: 0; padding-bottom: 1rem; } .settings-content { padding-left: 0; padding-top: 1.5rem; padding-right: 0; } }
-/* --- Compact toggle clickability hotfix --- */
-.subtasks-toolbar { position: relative; z-index: 1000; pointer-events: auto; }
-.subtasks-toolbar .switch { position: relative; z-index: 1001; }
-.subtasks-toolbar .switch input { position:absolute; left:0; top:0; width:100%; height:100%; opacity:0; cursor:pointer; z-index: 3; }
-.subtasks-toolbar .switch .slider { z-index: 2; }
-.subtasks-toolbar .switch-text { cursor: pointer; }
+/* === Compact Subtasks (table) === */
+.subtasks-toolbar { display:flex; align-items:center; gap:.5rem; margin:.5rem 0 .5rem 0; position:relative; z-index:10; }
+.switch { position: relative; display: inline-block; width: 46px; height: 24px; vertical-align: middle; }
+.switch input { position:absolute; opacity:0; width:46px; height:24px; margin:0; cursor:pointer; z-index:2; }
+.switch .slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#cfcfcf; border-radius:24px; transition:.2s; z-index:1; }
+.switch .slider:before { position:absolute; content:""; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
+.switch input:checked + .slider { background: var(--color-accent-primary, #1E4D2B); }
+.switch input:checked + .slider:before { transform: translateX(22px); }
+.subtasks-toolbar .switch-text { user-select:none; cursor:pointer; }
+
+.compact-subtasks { max-height: 420px; overflow:auto; border:1px solid var(--color-border, #dee2e6); border-radius:8px; background:var(--color-bg-card,#fff); }
+.compact-table { width:100%; border-collapse: collapse; background: var(--color-bg-card, #fff); }
+.compact-table thead th { position:sticky; top:0; background: var(--color-bg-column, #e9ecef); text-align:left; padding:.5rem; border-bottom:1px solid var(--color-border, #dee2e6); z-index:1; }
+.compact-table tbody td { padding:.35rem .5rem; border-bottom:1px dashed rgba(0,0,0,.06); vertical-align: middle; }
+.compact-table input[type="text"], .compact-table input[type="date"], .compact-table select { width:100%; padding:.3rem .4rem; }
+.compact-table .assignee { display:flex; align-items:center; gap:.4rem; }
+.compact-table .row-btn { background:none; border:0; cursor:pointer; opacity:.75; margin-left:.35rem; }
+.compact-table .row-btn:hover { opacity:1; }
+.compact-table .tree-indent { display:inline-block; }
+.quick-add-row td { background: var(--color-bg-input, #f1f3f5); }
