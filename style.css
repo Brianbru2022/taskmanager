@@ -759,9 +759,9 @@ input:checked + .slider:before { transform: translateX(26px); }
 } .sidebar { display: none; } .kanban-board { flex-direction: column; } .kanban-column { width: 100%; max-width: none;
 } .settings-body { grid-template-columns: 1fr; } .settings-container { flex-direction: column; } .settings-tabs { flex-direction: row; border-right: none;
 border-bottom: 1px solid var(--color-border); padding-right: 0; padding-bottom: 1rem; } .settings-content { padding-left: 0; padding-top: 1.5rem; padding-right: 0; } }
-/* === Compact Subtasks (table) === */
-.subtasks-toolbar { display:flex; align-items:center; gap:.5rem; margin:.5rem 0 .5rem 0; position:relative; z-index:10; }
-.switch { position: relative; display: inline-block; width: 46px; height: 24px; vertical-align: middle; }
+/* === Compact Subtasks (table) & Toggle === */
+.subtasks-toolbar { display:flex; align-items:center; gap:.5rem; margin:.5rem 0; position:relative; z-index: 10; }
+.switch { position: relative; display:inline-block; width:46px; height:24px; vertical-align:middle; }
 .switch input { position:absolute; opacity:0; width:46px; height:24px; margin:0; cursor:pointer; z-index:2; }
 .switch .slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#cfcfcf; border-radius:24px; transition:.2s; z-index:1; }
 .switch .slider:before { position:absolute; content:""; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
