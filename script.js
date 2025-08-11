@@ -418,6 +418,7 @@ get('subtasksToolbar').style.display = 'block';
 subtasksListContainer.innerHTML = '';
 const _tgl = get('toggleCompactSubtasks');
 const _useCompact = _tgl && _tgl.checked === true;
+  if (_tgl && !_tgl.dataset.wired) { _tgl.addEventListener('change', () => openTaskModal(currentEditingTask.id)); _tgl.dataset.wired = '1'; }
 if (_useCompact) {
   subtasksListContainer.appendChild(renderCompactSubtasks(task));
   addSubTaskFormContainer.innerHTML = '';
