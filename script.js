@@ -414,6 +414,8 @@ taskProgressInput.value = task.progress || '';
             [deleteTaskBtn, archiveTaskBtn, subTaskSection, mainLogControls, logSummarySection].forEach(el => el.style.display = 'block');
 subtasksListContainer.innerHTML = '';
 ensureCompactToolbar();
+/* compact re-eval */ if (document.getElementById('toggleCompactSubtasks')) { document.getElementById('toggleCompactSubtasks').dispatchEvent(new Event('input')); }
+
 if (document.getElementById('toggleCompactSubtasks') && document.getElementById('toggleCompactSubtasks').checked) {
   subtasksListContainer.appendChild(renderCompactSubtasksTable(task));
   addSubTaskFormContainer.innerHTML = '';
