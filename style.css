@@ -819,3 +819,14 @@ border-bottom: 1px solid var(--color-border); padding-right: 0; padding-bottom: 
 .switch input:checked + .slider { background: var(--color-accent-primary, #1E4D2B); }
 .switch input:checked + .slider:before { transform: translateX(26px); }
 .subtasks-toolbar .switch-text { user-select:none; }
+
+/* Compact Subtasks Table */
+.compact-table { width:100%; border-collapse: collapse; background: var(--color-bg-card, #fff); }
+.compact-table thead th { position:sticky; top:0; background: var(--color-bg-column, #e9ecef); text-align:left; padding:.5rem; border-bottom:1px solid var(--color-border, #dee2e6); z-index:1; }
+.compact-table tbody td { padding:.35rem .5rem; border-bottom:1px dashed rgba(0,0,0,.06); vertical-align: middle; }
+.compact-table input[type="text"], .compact-table input[type="date"], .compact-table select { width:100%; padding:.3rem .4rem; }
+.compact-table .assignee { display:flex; align-items:center; gap:.4rem; }
+.compact-table .row-btn { background:none; border:0; cursor:pointer; opacity:.75; margin-left:.35rem; }
+.compact-table .row-btn:hover { opacity:1; }
+.compact-table .tree-indent { display:inline-block; }
+.quick-add-row td { background: var(--color-bg-input, #f1f3f5); }
