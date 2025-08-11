@@ -1209,7 +1209,10 @@ queryAll('.modal').forEach(modal => { modal.addEventListener('click', e => { if 
             get(id).addEventListener('click', (e) => {
                 const li = e.target.closest('li');
                 if (li && li.dataset.taskId) {
-                    openTaskModal(li.dataset.taskId);
+                    
+// Fallback: click anywhere on toolbar toggles re-render
+const _tbEl = get('subtasksToolbar'); if (_tbEl && !_tbEl.dataset.clickwired){ _tbEl.addEventListener('click', (e)=>{ const cb=get('toggleCompactSubtasks'); if(!cb)return; if(e.target.classList.contains('switch-text')){ cb.checked=!cb.checked; } if(cb.checked!==undefined){ openTaskModal(currentEditingTask.id);} }); _tbEl.dataset.clickwired='1'; }
+openTaskModal(li.dataset.taskId);
                 }
             });
         });
