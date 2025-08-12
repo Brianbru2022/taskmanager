@@ -951,5 +951,6 @@ body[data-theme="dark"] .row-overdue{ background:#3a2222; }
 .add-root-subtask{ margin-bottom:.5rem; }
 
 /* Optional: neutralise old bulky subtask look when using table */
-#subtasksListContainer .sub-task-container{ display:none; }
+.subtask-tree-table-active #subtasksListContainer .sub-task-container { display: none; }
+
 
