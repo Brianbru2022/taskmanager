@@ -358,97 +358,97 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         return card;
     };
     
-    const renderSubTask = (taskObject, level = 0) => {
-        if (taskObject.status === 'Closed') {
-            return document.createDocumentFragment();
-        }
-        const container = document.createElement('div');
-        const colorClass = SUBTASK_COLORS[level % SUBTASK_COLORS.length];
-        container.className = `sub-task-container ${colorClass}`;
+    // --- replace the start of renderSubTask with this ---
+const renderSubTask = (taskObject, level = 0) => {
+  const container = document.createElement('div');
+  const colorClass = SUBTASK_COLORS[level % SUBTASK_COLORS.length];
+  const isClosed = taskObject.status === 'Closed';
+  container.className = `sub-task-container ${colorClass} ${isClosed ? 'is-closed' : ''}`;
 
-        const header = document.createElement('div');
-        const isExpanded = expandedSubtasks.has(taskObject.id);
-        header.className = `sub-task-header ${isExpanded ? '' : 'collapsed'}`;
-        const assigneeIcon = `<div class="card-assignee-icon sub-task-assignee-icon" style="background-color: ${people[taskObject.assignee] || '#ccc'}" title="${taskObject.assignee}">${getInitials(taskObject.assignee)}</div>`;
-        const statusDropdownHTML = `<select class="sub-task-status" data-task-id="${taskObject.id}">${KANBAN_STATUSES.map(s => `<option value="${s}" ${taskObject.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>`;
-        const quickCloseBtnHTML = `<button class="sub-task-quick-close" data-task-id="${taskObject.id}" title="Mark as Closed"><i class="fas fa-check-circle"></i></button>`;
-        const dueDateInputHTML = `<input type="date" class="sub-task-due-date" value="${taskObject.dueDate}" data-task-id="${taskObject.id}">`;
+  const header = document.createElement('div');
+  const isExpanded = expandedSubtasks.has(taskObject.id);
+  header.className = `sub-task-header ${isExpanded ? '' : 'collapsed'} ${isClosed ? 'is-closed' : ''}`;
 
-        header.innerHTML = `<span class="sub-task-toggle"><i class="fas fa-chevron-down"></i></span><span class="sub-task-title">${taskObject.name}</span>${assigneeIcon}<div class="sub-task-controls">${dueDateInputHTML}${statusDropdownHTML}${quickCloseBtnHTML}</div>`;
-        
-        const body = document.createElement('div');
-        body.className = `sub-task-body ${isExpanded ? '' : 'collapsed'}`;
-        
-        const linksSection = document.createElement('div');
-        linksSection.className = 'links-section';
-        linksSection.innerHTML = `<h4>Links <button type="button" class="add-link-btn-header" data-task-id="${taskObject.id}" title="Add Link"><i class="fas fa-link"></i></button></h4>`;
-        const linksList = document.createElement('ul');
-        linksList.className = 'links-list';
-        (taskObject.links || []).forEach(link => {
-            const li = document.createElement('li');
-            li.innerHTML = `<a href="${link.url}" target="_blank">${link.name}</a>`;
-            linksList.appendChild(li);
-        });
-        linksSection.appendChild(linksList);
+  const assigneeIcon = `<div class="card-assignee-icon sub-task-assignee-icon" style="background-color: ${people[taskObject.assignee] || '#ccc'}" title="${taskObject.assignee}">${getInitials(taskObject.assignee)}</div>`;
+  const statusDropdownHTML = `<select class="sub-task-status" data-task-id="${taskObject.id}">${KANBAN_STATUSES.map(s => `<option value="${s}" ${taskObject.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>`;
+  const quickCloseBtnHTML = isClosed ? '' : `<button class="sub-task-quick-close" data-task-id="${taskObject.id}" title="Mark as Closed"><i class="fas fa-check-circle"></i></button>`;
 
-        body.innerHTML = `<p class="sub-task-description">${taskObject.description || 'No description.'}</p>`;
-        body.appendChild(linksSection);
-        body.appendChild(createLogControls(taskObject));
+  header.innerHTML = `<span class="sub-task-toggle"><i class="fas fa-chevron-down"></i></span><span class="sub-task-title">${taskObject.name}</span>${assigneeIcon}<span><strong>Due:</strong> ${formatDateForDisplay(taskObject.dueDate)}</span>${statusDropdownHTML}${quickCloseBtnHTML}`;
 
-        const nestedSubtasksContainer = document.createElement('div');
-        nestedSubtasksContainer.className = 'sub-tasks-nested';
-        (taskObject.subtasks || []).forEach((sub, index) => nestedSubtasksContainer.appendChild(renderSubTask(sub, level + 1 + index)));
-        body.appendChild(nestedSubtasksContainer);
-        body.appendChild(createSubtaskForm(taskObject));
-        container.append(header, body);
-        header.addEventListener('click', (e) => { if (e.target.closest('button,select,input')) return; isExpanded ? expandedSubtasks.delete(taskObject.id) : expandedSubtasks.add(taskObject.id); header.classList.toggle('collapsed'); body.classList.toggle('collapsed'); });
-        
-        const handleSubtaskClose = (subTaskId) => {
-            const subTask = findTaskById(subTaskId);
-            if (subTask && subTask.status !== 'Closed') {
-                subTask.status = 'Closed';
-                subTask.closedDate = new Date().toISOString();
-                logAction(currentEditingTask, `Sub-task "${subTask.name}" marked as completed.`, subTask.assignee);
-                updateMainTaskDueDate(currentEditingTask);
-                saveState();
-                openTaskModal(currentEditingTask.id);
-            }
-        };
+  const body = document.createElement('div');
+  body.className = `sub-task-body ${isExpanded ? '' : 'collapsed'}`;
 
-        header.querySelector('.sub-task-status').addEventListener('change', (e) => {
-            e.stopPropagation();
-            const subTask = findTaskById(e.target.dataset.taskId);
-            if (subTask) {
-                subTask.status = e.target.value;
-                if (subTask.status === 'Closed') {
-                    handleSubtaskClose(subTask.id);
-                } else {
-                   saveState();
-                }
-            }
-        });
+  const linksSection = document.createElement('div');
+  linksSection.className = 'links-section';
+  linksSection.innerHTML = `<h4>Links <button type="button" class="add-link-btn-header" data-task-id="${taskObject.id}" title="Add Link"><i class="fas fa-link"></i></button></h4>`;
+  const linksList = document.createElement('ul');
+  linksList.className = 'links-list';
+  (taskObject.links || []).forEach(link => {
+    const li = document.createElement('li');
+    li.innerHTML = `<a href="${link.url}" target="_blank">${link.name}</a>`;
+    linksList.appendChild(li);
+  });
+  linksSection.appendChild(linksList);
 
-        header.querySelector('.sub-task-due-date').addEventListener('change', (e) => {
-            e.stopPropagation();
-            const subTask = findTaskById(e.target.dataset.taskId);
-            if (subTask) {
-                subTask.dueDate = e.target.value;
-                logAction(currentEditingTask, `Due date for sub-task "${subTask.name}" changed to ${formatDateForDisplay(subTask.dueDate)}.`, subTask.assignee);
-                updateMainTaskDueDate(currentEditingTask);
-                saveState();
-                openTaskModal(currentEditingTask.id);
-            }
-        });
+  body.innerHTML = `<p class="sub-task-description">${taskObject.description || 'No description.'}</p>`;
+  body.appendChild(linksSection);
+  body.appendChild(createLogControls(taskObject));
 
-        header.querySelector('.sub-task-quick-close').addEventListener('click', (e) => {
-            e.stopPropagation();
-            handleSubtaskClose(e.currentTarget.dataset.taskId);
-        });
-        body.querySelector('.add-link-btn-header').addEventListener('click', (e) => {
-            openLinkModal(e.currentTarget.dataset.taskId);
-        });
-        return container;
-    };
+  const nestedSubtasksContainer = document.createElement('div');
+  nestedSubtasksContainer.className = 'sub-tasks-nested';
+  (taskObject.subtasks || []).forEach((sub, index) => nestedSubtasksContainer.appendChild(renderSubTask(sub, level + 1 + index)));
+  body.appendChild(nestedSubtasksContainer);
+  body.appendChild(createSubtaskForm(taskObject));
+  container.append(header, body);
+
+  // expand/collapse
+  header.addEventListener('click', (e) => {
+    if (e.target.closest('button,select,input')) return;
+    isExpanded ? expandedSubtasks.delete(taskObject.id) : expandedSubtasks.add(taskObject.id);
+    header.classList.toggle('collapsed');
+    body.classList.toggle('collapsed');
+  });
+
+  const handleSubtaskClose = (subTaskId) => {
+    const subTask = findTaskById(subTaskId);
+    if (subTask && subTask.status !== 'Closed') {
+      subTask.status = 'Closed';
+      subTask.closedDate = new Date().toISOString();
+      logAction(currentEditingTask, `Sub-task "${subTask.name}" marked as completed.`, subTask.assignee);
+      updateMainTaskDueDate(currentEditingTask);
+      saveState();
+      openTaskModal(currentEditingTask.id);
+    }
+  };
+
+  // handle status changes (close OR re-open)
+  header.querySelector('.sub-task-status').addEventListener('change', (e) => {
+    const subTask = findTaskById(e.target.dataset.taskId);
+    if (!subTask) return;
+    subTask.status = e.target.value;
+    if (subTask.status === 'Closed') {
+      handleSubtaskClose(subTask.id);
+    } else {
+      subTask.closedDate = null;
+      saveState();
+      openTaskModal(currentEditingTask.id);
+    }
+  });
+
+  const quickBtn = header.querySelector('.sub-task-quick-close');
+  if (quickBtn) {
+    quickBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleSubtaskClose(e.currentTarget.dataset.taskId);
+    });
+  }
+
+  body.querySelector('.add-link-btn-header').addEventListener('click', (e) => {
+    openLinkModal(e.currentTarget.dataset.taskId);
+  });
+
+  return container;
+};
 
     const createLogControls = (taskObject) => {
         const div = document.createElement('div');
