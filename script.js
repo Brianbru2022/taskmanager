@@ -1,4 +1,144 @@
-(() => {
+(
+// === COMPACT SUBTASK TREE-TABLE (injected) ===
+const ensureSubtaskTableStyles = () => {
+  if (document.getElementById('subtask-tree-table-styles')) return;
+  const css = `
+  .subtask-table-wrapper{border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-card);overflow:hidden}
+  .subtask-toolbar{display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;background:var(--color-bg-column);border-bottom:1px solid var(--color-border)}
+  .subtask-toolbar h4{margin:0;font-size:1rem}
+  .subtask-tree-table{width:100%;border-collapse:collapse;font-size:.92rem}
+  .subtask-tree-table th,.subtask-tree-table td{border-bottom:1px solid var(--color-border);padding:.5rem .6rem;vertical-align:middle;white-space:nowrap}
+  .subtask-tree-table th{background:var(--color-bg-card);position:sticky;top:0;z-index:1;text-align:left}
+  .subtask-row{transition:background .15s}
+  .subtask-row:hover{background:var(--color-bg-input)}
+  .tree-toggle{cursor:pointer;display:inline-flex;align-items:center;gap:.4rem}
+  .tree-indent{display:inline-block;width:0.9rem}
+  .subtask-actions{display:flex;gap:.35rem;justify-content:flex-end}
+  .subtask-actions .btn{padding:.25rem .5rem;font-size:.8rem}
+  .subtask-assignee{display:inline-flex;align-items:center;gap:.35rem}
+  .subtask-assignee .card-assignee-icon{width:22px;height:22px;font-size:.65rem}
+  .badge{display:inline-block;padding:.1rem .4rem;border-radius:4px;font-size:.72rem;background:var(--color-bg-column);}
+  `;
+  const style = document.createElement('style');
+  style.id = 'subtask-tree-table-styles';
+  style.textContent = css;
+  document.head.appendChild(style);
+};
+
+const renderSubtasksAsTreeTable = (rootTask) => {
+  ensureSubtaskTableStyles();
+  subtasksListContainer.innerHTML='';
+  const wrapper=document.createElement('div');
+  wrapper.className='subtask-table-wrapper';
+  wrapper.innerHTML=`
+    <div class="subtask-toolbar">
+      <h4>Sub-Tasks</h4>
+      <button type="button" class="btn btn-primary" id="addTopLevelSubtaskBtn">
+        <i class="fas fa-plus"></i> Add Sub-Task
+      </button>
+    </div>
+    <div style="max-height:400px;overflow:auto">
+      <table class="subtask-tree-table">
+        <thead><tr>
+          <th style="width:42%;">Title</th>
+          <th style="width:18%;">Assignee</th>
+          <th style="width:12%;">Due</th>
+          <th style="width:12%;">Status</th>
+          <th style="width:16%;text-align:right;">Actions</th>
+        </tr></thead>
+        <tbody id="subtaskTableBody"></tbody>
+      </table>
+    </div>`;
+  subtasksListContainer.appendChild(wrapper);
+  const tbody=wrapper.querySelector('#subtaskTableBody');
+
+  const rows=[];
+  const walk=(arr,parent,level)=>{
+    (arr||[]).forEach(st=>{
+      if(st.status==='Closed') return;
+      rows.push({st,parent,level});
+      walk(st.subtasks, st.id, level+1);
+    });
+  };
+  walk(rootTask.subtasks, rootTask.id, 0);
+
+  const addRow=({st,parent,level})=>{
+    const tr=document.createElement('tr');
+    tr.className='subtask-row'; tr.dataset.id=st.id; tr.dataset.parent=parent||''; tr.dataset.level=level;
+    const hasKids=(st.subtasks||[]).some(c=>c.status!=='Closed');
+    const exp=expandedSubtasks.has(st.id);
+    const indent='<span class="tree-indent"></span>'.repeat(level);
+    const caret=hasKids?`<span class="tree-toggle" data-id="${st.id}"><i class="fas fa-chevron-${exp?'down':'right'}"></i></span>`:`<span class="tree-indent"></span>`;
+
+    const tdTitle=document.createElement('td');
+    tdTitle.innerHTML=`${indent}${caret}<strong>${st.name}</strong>${st.description?` <span class="badge" title="${st.description}">info</span>`:''}`;
+
+    const tdAssignee=document.createElement('td');
+    const icon = `<div class="card-assignee-icon" style="background-color:${people[st.assignee]||'#ccc'}">${(st.assignee||'').split(' ').map(n=>n[0]).join('').toUpperCase()}</div>`;
+    tdAssignee.innerHTML=`<span class="subtask-assignee">${icon}<span>${st.assignee||'—'}</span></span>`;
+
+    const tdDue=document.createElement('td'); tdDue.textContent = formatDateForDisplay(st.dueDate);
+
+    const tdStatus=document.createElement('td');
+    tdStatus.innerHTML = `<select class="subtask-status" data-task-id="${st.id}">
+      ${KANBAN_STATUSES.map(s=>`<option value="${s}" ${s===st.status?'selected':''}>${s}</option>`).join('')}
+    </select>`;
+
+    const tdActions=document.createElement('td'); tdActions.className='subtask-actions';
+    tdActions.innerHTML = `
+      <button class="btn btn-secondary btn-sm add-child" data-task-id="${st.id}" title="Add sub-task"><i class="fas fa-level-down-alt"></i></button>
+      <button class="btn btn-primary btn-sm add-link" data-task-id="${st.id}" title="Links"><i class="fas fa-link"></i></button>
+      <button class="btn btn-warning btn-sm mark-done" data-task-id="${st.id}" title="Mark Closed"><i class="fas fa-check"></i></button>`;
+
+    tr.append(tdTitle, tdAssignee, tdDue, tdStatus, tdActions);
+    tbody.appendChild(tr);
+  };
+  rows.forEach(addRow);
+
+  const refresh=()=>{
+    [...tbody.querySelectorAll('tr.subtask-row')].forEach(tr=>{
+      let show=true; let p=tr.dataset.parent;
+      while(p){
+        if(!expandedSubtasks.has(p)){ show=false; break; }
+        const prow=tbody.querySelector(`tr.subtask-row[data-id="${p}"]`);
+        p = prow ? prow.dataset.parent : '';
+      }
+      tr.style.display = show?'' : 'none';
+    });
+    tbody.querySelectorAll('.tree-toggle').forEach(tg=>{
+      const id=tg.dataset.id;
+      tg.querySelector('i').className = `fas fa-chevron-${expandedSubtasks.has(id)?'down':'right'}`;
+    });
+  };
+  refresh();
+
+  tbody.addEventListener('click', (e)=>{
+    const t=e.target.closest('.tree-toggle'); if(t){ const id=t.dataset.id; expandedSubtasks.has(id)?expandedSubtasks.delete(id):expandedSubtasks.add(id); refresh(); return; }
+    const link=e.target.closest('.add-link'); if(link){ openLinkModal(link.dataset.taskId); return; }
+    const done=e.target.closest('.mark-done'); if(done){ const st=findTaskById(done.dataset.taskId); if(st&&st.status!=='Closed'){ st.status='Closed'; st.closedDate=new Date().toISOString(); logAction(rootTask, `Sub-task "${st.name}" marked as completed.`, st.assignee); updateMainTaskDueDate(rootTask); saveState(); openTaskModal(rootTask.id);} return; }
+    const add=e.target.closest('.add-child'); if(add){ const parent=findTaskById(add.dataset.taskId); addSubTaskFormContainer.innerHTML=''; addSubTaskFormContainer.appendChild(createSubtaskForm(parent)); addSubTaskFormContainer.scrollIntoView({behavior:'smooth', block:'center'}); }
+  });
+
+  tbody.addEventListener('change', (e)=>{
+    const sel=e.target.closest('.subtask-status'); if(!sel) return;
+    const st=findTaskById(sel.dataset.taskId); if(!st) return;
+    st.status = sel.value;
+    if (st.status === 'Closed') {
+      st.closedDate = new Date().toISOString();
+      logAction(rootTask, `Sub-task "${st.name}" marked as completed.`, st.assignee);
+      updateMainTaskDueDate(rootTask);
+      saveState();
+      openTaskModal(rootTask.id);
+    } else { saveState(); }
+  });
+
+  wrapper.querySelector('#addTopLevelSubtaskBtn').addEventListener('click', ()=>{
+    addSubTaskFormContainer.innerHTML='';
+    addSubTaskFormContainer.appendChild(createSubtaskForm(rootTask));
+    addSubTaskFormContainer.scrollIntoView({behavior:'smooth', block:'center'});
+  });
+};
+() => {
     // --- STATE MANAGEMENT ---
     let tasks = []; let categories = {}; let people = {}; let passwords = []; let websites = []; let activeAssigneeSelect = null; let expandedSubtasks = new Set();
     const KANBAN_STATUSES = ['Open', 'In Progress', 'Closed'];
@@ -327,189 +467,6 @@ div.querySelector('.add-update-btn').addEventListener('click', () => { const inp
 div.querySelectorAll('.btn-chaser').forEach(btn => btn.addEventListener('click', (e) => {logAction(taskObject, e.target.dataset.log, taskObject.assignee); openTaskModal(currentEditingTask.id);}));
         return div;
     };
-
-/* === COMPACT SUBTASK TREE-TABLE (injected) === */
-const ensureSubtaskTableStyles = () => {
-  if (document.getElementById('subtask-tree-table-styles')) return;
-  const css = `
-  .subtask-table-wrapper{border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-card);overflow:hidden}
-  .subtask-toolbar{display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;background:var(--color-bg-column);border-bottom:1px solid var(--color-border)}
-  .subtask-toolbar h4{margin:0;font-size:1rem}
-  .subtask-tree-table{width:100%;border-collapse:collapse;font-size:.92rem}
-  .subtask-tree-table th,.subtask-tree-table td{border-bottom:1px solid var(--color-border);padding:.5rem .6rem;vertical-align:middle;white-space:nowrap}
-  .subtask-tree-table th{background:var(--color-bg-card);position:sticky;top:0;z-index:1;text-align:left}
-  .subtask-row{transition:background .15s}
-  .subtask-row:hover{background:var(--color-bg-input)}
-  .tree-toggle{cursor:pointer;display:inline-flex;align-items:center;gap:.4rem}
-  .tree-indent{display:inline-block;width:0.9rem}
-  .subtask-actions{display:flex;gap:.35rem;justify-content:flex-end}
-  .subtask-actions .btn{padding:.25rem .5rem;font-size:.8rem}
-  .subtask-assignee{display:inline-flex;align-items:center;gap:.35rem}
-  .subtask-assignee .card-assignee-icon{width:22px;height:22px;font-size:.65rem}
-  .badge{display:inline-block;padding:.1rem .4rem;border-radius:4px;font-size:.72rem;background:var(--color-bg-column);}
-  `;
-  const style = document.createElement('style');
-  style.id = 'subtask-tree-table-styles';
-  style.textContent = css;
-  document.head.appendChild(style);
-};
-
-const renderSubtasksAsTreeTable = (rootTask) => {
-  ensureSubtaskTableStyles();
-  subtasksListContainer.innerHTML = '';
-
-  const wrapper = document.createElement('div');
-  wrapper.className = 'subtask-table-wrapper';
-  wrapper.innerHTML = `
-    <div class="subtask-toolbar">
-      <h4>Sub-Tasks</h4>
-      <button type="button" class="btn btn-primary" id="addTopLevelSubtaskBtn">
-        <i class="fas fa-plus"></i> Add Sub-Task
-      </button>
-    </div>
-    <div style="max-height:400px;overflow:auto">
-      <table class="subtask-tree-table">
-        <thead>
-          <tr>
-            <th style="width:40%;">Title</th>
-            <th style="width:18%;">Assignee</th>
-            <th style="width:12%;">Due</th>
-            <th style="width:12%;">Status</th>
-            <th style="width:18%;text-align:right;">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="subtaskTableBody"></tbody>
-      </table>
-    </div>
-  `;
-  subtasksListContainer.appendChild(wrapper);
-  const tbody = wrapper.querySelector('#subtaskTableBody');
-
-  const rows = [];
-  const walk = (children, parentId, level) => {
-    (children || []).forEach(st => {
-      if (st.status === 'Closed') return;
-      rows.push({ task: st, parentId, level });
-      walk(st.subtasks || [], st.id, level + 1);
-    });
-  };
-  walk(rootTask.subtasks || [], rootTask.id, 0);
-
-  const optionHTML = (v, sel) => `<option value="${v}" ${sel ? 'selected' : ''}>${v}</option>`;
-
-  const addRow = ({ task, parentId, level }) => {
-    const tr = document.createElement('tr');
-    tr.className = 'subtask-row';
-    tr.dataset.id = task.id;
-    tr.dataset.parent = parentId || '';
-    tr.dataset.level = level;
-
-    const hasKids = (task.subtasks || []).some(s => s.status !== 'Closed');
-    const isExpanded = expandedSubtasks.has(task.id);
-
-    const titleTd = document.createElement('td');
-    const indent = '<span class="tree-indent"></span>'.repeat(level);
-    const caret = hasKids
-      ? `<span class="tree-toggle" data-id="\${task.id}"><i class="fas fa-chevron-\${isExpanded ? 'down' : 'right'}"></i></span>`
-      : `<span class="tree-indent"></span>`;
-    titleTd.innerHTML = `${indent}${caret}<strong>${task.name}</strong>${task.description ? ` <span class="badge" title="${task.description}">info</span>` : ''}`;
-
-    const assigneeTd = document.createElement('td');
-    const icon = `<div class="card-assignee-icon" style="background-color:\${people[task.assignee] || '#ccc'}">\${getInitials(task.assignee)}</div>`;
-    assigneeTd.innerHTML = `<span class="subtask-assignee">${icon}<span>${task.assignee || '—'}</span></span>`;
-
-    const dueTd = document.createElement('td');
-    dueTd.textContent = formatDateForDisplay(task.dueDate);
-
-    const statusTd = document.createElement('td');
-    statusTd.innerHTML = `<select class="subtask-status" data-task-id="\${task.id}">
-      ${'${KANBAN_STATUSES.map(s => `<option value="${s}" ${s === task.status ? "selected" : ""}>${s}</option>`).join("")}'}
-    </select>`;
-
-    const actionsTd = document.createElement('td');
-    actionsTd.className = 'subtask-actions';
-    actionsTd.innerHTML = `
-      <button class="btn btn-secondary btn-sm add-child" data-task-id="\${task.id}" title="Add sub-task"><i class="fas fa-level-down-alt"></i></button>
-      <button class="btn btn-primary btn-sm add-link" data-task-id="\${task.id}" title="Links"><i class="fas fa-link"></i></button>
-      <button class="btn btn-warning btn-sm mark-done" data-task-id="\${task.id}" title="Mark Closed"><i class="fas fa-check"></i></button>
-    `;
-
-    tr.append(titleTd, assigneeTd, dueTd, statusTd, actionsTd);
-    tbody.appendChild(tr);
-  };
-
-  rows.forEach(addRow);
-
-  const refresh = () => {
-    [...tbody.querySelectorAll('tr.subtask-row')].forEach(tr => {
-      let show = true;
-      let p = tr.dataset.parent;
-      while (p) {
-        if (!expandedSubtasks.has(p)) { show = false; break; }
-        const parentRow = tbody.querySelector(\`tr.subtask-row[data-id="\${p}"]\`);
-        p = parentRow ? parentRow.dataset.parent : '';
-      }
-      tr.style.display = show ? '' : 'none';
-    });
-    tbody.querySelectorAll('.tree-toggle').forEach(tg => {
-      const id = tg.dataset.id;
-      tg.querySelector('i').className = \`fas fa-chevron-\${expandedSubtasks.has(id) ? 'down' : 'right'}\`;
-    });
-  };
-  refresh();
-
-  tbody.addEventListener('click', (e) => {
-    const t = e.target.closest('.tree-toggle');
-    if (t) {
-      const id = t.dataset.id;
-      expandedSubtasks.has(id) ? expandedSubtasks.delete(id) : expandedSubtasks.add(id);
-      refresh(); return;
-    }
-    const linkBtn = e.target.closest('.add-link');
-    if (linkBtn) { openLinkModal(linkBtn.dataset.taskId); return; }
-    const doneBtn = e.target.closest('.mark-done');
-    if (doneBtn) {
-      const st = findTaskById(doneBtn.dataset.taskId);
-      if (st && st.status !== 'Closed') {
-        st.status = 'Closed';
-        st.closedDate = new Date().toISOString();
-        logAction(rootTask, \`Sub-task "\${st.name}" marked as completed.\`, st.assignee);
-        updateMainTaskDueDate(rootTask);
-        saveState(); openTaskModal(rootTask.id);
-      }
-      return;
-    }
-    const addChildBtn = e.target.closest('.add-child');
-    if (addChildBtn) {
-      const parent = findTaskById(addChildBtn.dataset.taskId);
-      addSubTaskFormContainer.innerHTML = '';
-      addSubTaskFormContainer.appendChild(createSubtaskForm(parent));
-      addSubTaskFormContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  });
-
-  tbody.addEventListener('change', (e) => {
-    const sel = e.target.closest('.subtask-status');
-    if (!sel) return;
-    const st = findTaskById(sel.dataset.taskId);
-    if (!st) return;
-    st.status = sel.value;
-    if (st.status === 'Closed') {
-      st.closedDate = new Date().toISOString();
-      logAction(rootTask, \`Sub-task "\${st.name}" marked as completed.\`, st.assignee);
-      updateMainTaskDueDate(rootTask);
-      saveState(); openTaskModal(rootTask.id);
-    } else {
-      saveState();
-    }
-  });
-
-  wrapper.querySelector('#addTopLevelSubtaskBtn').addEventListener('click', () => {
-    addSubTaskFormContainer.innerHTML = '';
-    addSubTaskFormContainer.appendChild(createSubtaskForm(rootTask));
-    addSubTaskFormContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  });
-};
 const createSubtaskForm = (parentTask) => {
         const form = document.createElement('div');
         form.className = 'add-subtask-form';
@@ -517,7 +474,7 @@ form.innerHTML = `<h4>Add New Sub-Task</h4><input type="text" placeholder="Sub-t
 const select = form.querySelector('.new-subtask-assignee');
         select.innerHTML += Object.keys(people).sort().map(p => `<option value="${p}">${p}</option>`).join('');
         form.querySelector('.add-person-btn-subtask').addEventListener('click', () => { activeAssigneeSelect = select; openModal(personModal); });
-form.querySelector('.add-subtask-btn').addEventListener('click', () => handleAddSubTask(form, parentTask));
+form.querySelector('.add-subtask-btn').addEventListener('click', (e)=>{e.preventDefault();e.stopPropagation();handleAddSubTask(form,parentTask);} );
         return form;
     };
 
