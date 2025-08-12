@@ -90,6 +90,9 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
     };
 
     // --- DOM ELEMENT SELECTION ---
+// Safe event binder: avoids crash if element is missing
+const on = (id, type, handler) => { const el = get(id); if (el) el.addEventListener(type, handler); };
+
     const get = (id) => document.getElementById(id);
     const queryAll = (selector) => document.querySelectorAll(selector);
     const kanbanBoard = get('kanbanBoard'), openNewTaskModalBtn = get('openNewTaskModalBtn'), assigneeFilter = get('assigneeFilter'), categoryFilter = get('categoryFilter'), sortByDate = get('sortByDate'), closedTasksFilter = get('closedTasksFilter'), taskModal = get('taskModal'), taskForm = get('taskForm'), modalTitle = get('modalTitle'), manageTaskHeader = get('manageTaskHeader'), taskNameInput = get('taskName'), taskDescriptionInput = get('taskDescription'), dueDateInput = get('dueDate'), taskUrgentInput = get('taskUrgent'), taskAssigneeSelect = get('taskAssignee'), categorySelect = get('categorySelect'), taskStatusSelect = get('taskStatus'), taskProgressInput = get('taskProgress'), progressContainer = get('progress-container'), deleteTaskBtn = get('deleteTaskBtn'), archiveTaskBtn = get('archiveTaskBtn'), addNewCategoryBtn = get('addNewCategoryBtn'), categoryModal = get('categoryModal'), categoryForm = get('categoryForm'), newCategoryNameInput = get('newCategoryName'), addNewPersonBtn = get('addNewPersonBtn'), personModal = get('personModal'), personForm = get('personForm'), newPersonNameInput = get('newPersonName'), subTaskSection = get('subTaskSection'), subtasksListContainer = get('subtasksListContainer'),
@@ -464,8 +467,8 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         form.innerHTML = `<h4>Add New Sub-Task</h4><input type="text" placeholder="Sub-task title..." class="new-subtask-name"><textarea placeholder="Sub-task description..." rows="2" class="new-subtask-description"></textarea><div class="input-with-button"><select class="new-subtask-assignee"><option value="" disabled selected>Select Assignee...</option></select><button type="button" class="add-icon-btn add-person-btn-subtask" title="Add New Person"><i class="fas fa-user-plus"></i></button></div><input type="date" class="new-subtask-due-date"><button type="button" class="btn btn-primary add-subtask-btn"><i class="fas fa-plus"></i> Add Sub-Task</button>`;
         const select = form.querySelector('.new-subtask-assignee');
         select.innerHTML += Object.keys(people).sort().map(p => `<option value="${p}">${p}</option>`).join('');
-        form.querySelector('.add-person-btn-subtask').addEventListener('click', () => { activeAssigneeSelect = select; openModal(personModal); });
-        form.querySelector('.add-subtask-btn').addEventListener('click', () => handleAddSubTask(form, parentTask));
+        form.querySelector('.add-person-btn-subtask').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); activeAssigneeSelect = select; openModal(personModal); });
+        form.querySelector('.add-subtask-btn').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); handleAddSubTask(form, parentTask); });
         return form;
     };
 
@@ -509,37 +512,44 @@ new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit'
         const logAssignee = assignee || taskObject.assignee;
         taskObject.log.unshift({ timestamp: new Date().toISOString(), message, assignee: logAssignee });
     };
-    
-// === Compact Subtask Tree-Table (injected) ===
-const ensureSubtaskTableStyles = () => {
-  if (document.getElementById('subtask-tree-table-styles')) return;
-  const css = `
-  .subtask-table-wrapper{border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-card);overflow:hidden}
-  .subtask-toolbar{display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;background:var(--color-bg-column);border-bottom:1px solid var(--color-border)}
-  .subtask-toolbar h4{margin:0;font-size:1rem}
-  .subtask-tree-table{width:100%;border-collapse:collapse;font-size:.92rem}
-  .subtask-tree-table th,.subtask-tree-table td{border-bottom:1px solid var(--color-border);padding:.5rem .6rem;vertical-align:middle;white-space:nowrap}
-  .subtask-tree-table th{background:var(--color-bg-card);position:sticky;top:0;z-index:1;text-align:left}
-  .subtask-row{transition:background .15s}
-  .subtask-row:hover{background:var(--color-bg-input)}
-  .tree-toggle{cursor:pointer;display:inline-flex;align-items:center;gap:.4rem}
-  .tree-indent{display:inline-block;width:0.9rem}
-  .subtask-actions{display:flex;gap:.35rem;justify-content:flex-end}
-  .subtask-actions .btn{padding:.25rem .5rem;font-size:.8rem}
-  .subtask-assignee{display:inline-flex;align-items:center;gap:.35rem}
-  .subtask-assignee .card-assignee-icon{width:22px;height:22px;font-size:.65rem}
-  `;
-  const style = document.createElement('style');
-  style.id = 'subtask-tree-table-styles';
-  style.textContent = css;
-  document.head.appendChild(style);
-};
+    const openTaskModal = (taskId = null) => {
+        taskForm.reset();
+        currentEditingTask = null;
+        if (!taskId) expandedSubtasks.clear();
+        [subTaskSection, mainLogControls, logSummarySection, deleteTaskBtn, archiveTaskBtn, manageTaskHeader, progressContainer].forEach(el => el.style.display = 'none');
+        populateAllDropdowns();
+        if (taskId) {
+            const task = findTaskById(taskId);
+            if (!task) return;
+            currentEditingTask = task;
+            if(!expandedSubtasks.has(task.id)) expandedSubtasks.add(task.id);
+            modalTitle.textContent = 'Manage Task';
+            manageTaskHeader.style.display = 'flex';
+            manageTaskHeader.innerHTML = `<h4>${task.name}</h4><div class="header-assignee"><div class="card-assignee-icon" style="background-color: ${people[task.assignee] || '#ccc'}" title="${task.assignee}">${getInitials(task.assignee)}</div><span>${task.assignee || 'Unassigned'}</span></div>`;
+            taskNameInput.value = task.name;
+            taskDescriptionInput.value = task.description;
+            dueDateInput.value = task.dueDate;
+            taskUrgentInput.checked = task.isUrgent;
+            taskAssigneeSelect.value = task.assignee;
+            categorySelect.value = task.category;
+            taskStatusSelect.value = task.status;
+            
+            get('mainTaskLinksList').innerHTML = '';
+            (task.links || []).forEach(link => {
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="${link.url}" target="_blank">${link.name}</a>`;
+                get('mainTaskLinksList').appendChild(li);
+            });
+            if (task.status === 'In Progress') {
+                progressContainer.style.display = 'block';
+                taskProgressInput.value = task.progress || '';
+            }
 
-const renderSubtasksAsTreeTable = (rootTask) => {
-  ensureSubtaskTableStyles();
-  subtasksListContainer.innerHTML = '';
-            renderSubtasksAsTreeTable(task);
+            [deleteTaskBtn, archiveTaskBtn, subTaskSection, mainLogControls, logSummarySection].forEach(el => el.style.display = 'block');
+            subtasksListContainer.innerHTML = '';
+            (task.subtasks || []).forEach((sub, index) => subtasksListContainer.appendChild(renderSubTask(sub, index)));
             addSubTaskFormContainer.innerHTML = '';
+            addSubTaskFormContainer.appendChild(createSubtaskForm(task));
             mainLogControls.innerHTML = '';
             mainLogControls.appendChild(createLogControls(task));
             renderLogSummary(task);
@@ -1323,26 +1333,26 @@ const generateCategoryReport = () => {
         const themeToggle = get('themeToggle');
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.body.dataset.theme = savedTheme;
-        themeToggle.checked = savedTheme === 'dark';
-
-        themeToggle.addEventListener('change', () => {
-            const newTheme = themeToggle.checked ? 'dark' : 'light';
-            document.body.dataset.theme = newTheme;
-            localStorage.setItem('theme', newTheme);
-        });
-
-        loadData();
+        if (themeToggle) {
+            themeToggle.checked = savedTheme === 'dark';
+            themeToggle.addEventListener('change', () => {
+                const newTheme = themeToggle.checked ? 'dark' : 'light';
+                document.body.dataset.theme = newTheme;
+                localStorage.setItem('theme', newTheme);
+            });
+        }
+loadData();
         addSampleData();
         switchView('homeView');
 
         // Sidebar navigation
-        get('homeLink').addEventListener('click', (e) => { e.preventDefault(); switchView('homeView'); });
-        get('tasksLink').addEventListener('click', (e) => { e.preventDefault(); switchView('tasksView'); });
-        get('notesLink').addEventListener('click', (e) => { e.preventDefault(); switchView('notesView'); });
-        get('manualLink').addEventListener('click', (e) => { e.preventDefault(); switchView('manualView'); });
-        get('sitesLink').addEventListener('click', (e) => { e.preventDefault(); switchView('sitesView'); });
-        get('commercialLink').addEventListener('click', (e) => { e.preventDefault(); switchView('commercialView'); });
-        reportsLink.addEventListener('click', (e) => { e.preventDefault(); switchView('reportsView'); });
+        on('homeLink','click',(e)=>{ e.preventDefault(); switchView('homeView'); });
+        on('tasksLink','click',(e)=>{ e.preventDefault(); switchView('tasksView'); });
+        on('notesLink','click',(e)=>{ e.preventDefault(); switchView('notesView'); });
+        on('manualLink','click',(e)=>{ e.preventDefault(); switchView('manualView'); });
+        on('sitesLink','click',(e)=>{ e.preventDefault(); switchView('sitesView'); });
+        on('commercialLink','click',(e)=>{ e.preventDefault(); switchView('commercialView'); });
+        on('reportsLink','click',(e)=>{ e.preventDefault(); switchView('reportsView'); });
         taskStatusSelect.addEventListener('change', (e) => {
             if (e.target.value === 'In Progress') {
                 progressContainer.style.display = 'block';
