@@ -892,3 +892,54 @@ input:checked + .slider:before { transform: translateX(26px); }
 } .sidebar { display: none; } .kanban-board { flex-direction: column; } .kanban-column { width: 100%; max-width: none;
 } .settings-body { grid-template-columns: 1fr; } .settings-container { flex-direction: column; } .settings-tabs { flex-direction: row; border-right: none;
 border-bottom: 1px solid var(--color-border); padding-right: 0; padding-bottom: 1rem; } .settings-content { padding-left: 0; padding-top: 1.5rem; padding-right: 0; } }
+
+/* --- COMPACT SUBTASK TREE-TABLE --- */
+.subtask-table-wrapper{
+  border:1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  overflow:auto;
+  max-height: 340px;
+  margin-top:.5rem;
+  background: var(--color-bg-card);
+}
+.subtask-tree-table{
+  width:100%; border-collapse: collapse; font-size:.92rem;
+}
+.subtask-tree-table thead th{
+  position: sticky; top:0;
+  background: var(--color-bg-column);
+  color: var(--color-text-secondary);
+  font-weight:600; text-align:left;
+  z-index: 1;
+}
+.subtask-tree-table th, .subtask-tree-table td{
+  padding:.45rem .6rem; border-bottom:1px solid var(--color-border);
+  white-space: nowrap; vertical-align: middle;
+}
+.tree-cell{
+  display:flex; align-items:center; gap:.45rem;
+  padding-left: calc(var(--indent, 0px) + 6px);
+}
+.tree-caret{ width:16px; text-align:center; cursor:pointer; color:var(--color-text-secondary); }
+.tree-caret.placeholder{ opacity:0; cursor:default; }
+tr.collapsed .tree-caret i{ transform: rotate(-90deg); }
+.subtask-tree-table .row-status{
+  padding:.2rem .35rem; font-size:.85rem;
+  background: var(--color-bg-input); border:1px solid var(--color-border); border-radius:4px;
+}
+.row-actions .icon-btn, .link-btn{
+  background:none; border:none; cursor:pointer; padding:2px 6px; border-radius:6px;
+}
+.row-actions .icon-btn:hover, .link-btn:hover{
+  background: var(--color-bg-input);
+}
+.link-btn{ display:inline-flex; align-items:center; gap:.25rem; font-size:.9rem; }
+.card-assignee-icon.compact-assignee{
+  width:22px; height:22px; font-size:.65rem; margin-right:.35rem;
+}
+.row-overdue{ background:#fff2f2; }
+body[data-theme="dark"] .row-overdue{ background:#3a2222; }
+.add-root-subtask{ margin-bottom:.5rem; }
+
+/* Optional: neutralise old bulky subtask look when using table */
+#subtasksListContainer .sub-task-container{ display:none; }
