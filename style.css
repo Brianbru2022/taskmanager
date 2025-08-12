@@ -492,6 +492,15 @@ cursor: pointer; position: relative; }
 }
 .sub-task-header .sub-task-quick-close:hover {
     opacity: 1;
+/* Closed subtask styling */
+.sub-task-container.is-closed,
+.sub-task-header.is-closed {
+  opacity: 0.6;
+}
+.sub-task-title.is-closed,
+.sub-task-container.is-closed .sub-task-title {
+  text-decoration: line-through;
+}
 }
 .sub-task-body { padding: 0 1rem 1rem 1rem; max-height: 2000px; overflow: hidden; transition: all 0.3s ease-in-out; }
 .sub-task-body.collapsed { max-height: 0;
@@ -943,3 +952,4 @@ body[data-theme="dark"] .row-overdue{ background:#3a2222; }
 
 /* Optional: neutralise old bulky subtask look when using table */
 #subtasksListContainer .sub-task-container{ display:none; }
+
