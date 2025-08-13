@@ -1,10 +1,8 @@
 
 /**
- * Notes Module (standalone, non-invasive) — with Archiving
- * Works with existing HTML IDs:
- *   #notesView, #notesContainer, #addNoteBtn, #saveNotesBtn, #stat-open-notes
- * Persists to localStorage key: 'notes'
- * Adds a small filter toolbar (Active / Archived / All) above the notes list.
+ * Notes Module (standalone, non-invasive) — Archiving + Fallback Wiring
+ * IDs used: #notesView, #notesContainer, #addNoteBtn, #saveNotesBtn, #stat-open-notes
+ * Storage key: 'notes'
  */
 (function () {
   if (window.__NOTES_MODULE_INITIALIZED__) return;
@@ -16,7 +14,7 @@
   const LS_KEY = 'notes';
   const loadNotes = () => {
     try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
-    catch { return []; }
+    catch (e) { console.warn('[Notes] Failed to parse storage', e); return []; }
   };
   const saveNotes = (arr) => localStorage.setItem(LS_KEY, JSON.stringify(arr || []));
 
@@ -36,7 +34,9 @@
 
   const ensureToolbar = () => {
     const container = $('notesContainer');
-    if (!container || $('notesToolbar')) return;
+    if (!container) return;
+    if ($('notesToolbar')) return;
+
     const bar = document.createElement('div');
     bar.id = 'notesToolbar';
     bar.className = 'notes-toolbar';
@@ -52,8 +52,9 @@
         </div>
       </div>
     `;
-    container.parentElement.insertBefore(bar, container);
-    // Wire filters
+    const parent = container.parentElement || $('notesView') || document.body;
+    parent.insertBefore(bar, container);
+
     const setActiveButton = (id) => {
       ['filterActive','filterArchived','filterAll'].forEach(btnId => {
         const b = $(btnId);
@@ -68,11 +69,12 @@
       setActiveButton(mode === 'active' ? 'filterActive' : mode === 'archived' ? 'filterArchived' : 'filterAll');
       renderNotes();
     };
-    $('filterActive').addEventListener('click', () => applyFilter('active'));
-    $('filterArchived').addEventListener('click', () => applyFilter('archived'));
-    $('filterAll').addEventListener('click', () => applyFilter('all'));
-    // Clear all archived
-    $('clearArchivedBtn').addEventListener('click', () => {
+    const fa = $('filterActive'), fr = $('filterArchived'), fall = $('filterAll');
+    fa && fa.addEventListener('click', () => applyFilter('active'));
+    fr && fr.addEventListener('click', () => applyFilter('archived'));
+    fall && fall.addEventListener('click', () => applyFilter('all'));
+    const clr = $('clearArchivedBtn');
+    clr && clr.addEventListener('click', () => {
       const before = notes.length;
       notes = notes.filter(n => !n.archived);
       if (notes.length !== before) {
@@ -85,10 +87,9 @@
 
   const renderNotes = () => {
     const container = $('notesContainer');
-    if (!container) return;
+    if (!container) { console.warn('[Notes] #notesContainer not found'); return; }
     ensureToolbar();
 
-    // Pick list by filter
     const list = Array.isArray(notes) ? notes.filter(n => {
       if (filterMode === 'active') return !n.archived;
       if (filterMode === 'archived') return !!n.archived;
@@ -137,7 +138,6 @@
         const id = card.dataset.id;
         const i = notes.findIndex(x => x.id === id);
         if (i === -1) return;
-        // Skip edits if archived
         if (notes[i].archived) return;
         notes[i].title = titleEl.value;
         notes[i].body  = bodyEl.value;
@@ -148,11 +148,10 @@
       };
 
       let tTimer, bTimer;
-      if (titleEl) titleEl.addEventListener('input', () => { clearTimeout(tTimer); tTimer = setTimeout(commitUpdate, 150); });
-      if (bodyEl)  bodyEl.addEventListener('input',  () => { clearTimeout(bTimer); bTimer = setTimeout(commitUpdate, 200); });
+      titleEl && titleEl.addEventListener('input', () => { clearTimeout(tTimer); tTimer = setTimeout(commitUpdate, 150); });
+      bodyEl  && bodyEl.addEventListener('input',  () => { clearTimeout(bTimer); bTimer = setTimeout(commitUpdate, 200); });
 
-      // Archive/Unarchive
-      qs('.archive-note-btn', card).addEventListener('click', () => {
+      card.querySelector('.archive-note-btn').addEventListener('click', () => {
         const id = card.dataset.id;
         const i = notes.findIndex(x => x.id === id);
         if (i === -1) return;
@@ -168,8 +167,7 @@
         updateDashboardCount();
       });
 
-      // Delete (permanent)
-      qs('.delete-note-btn', card).addEventListener('click', () => {
+      card.querySelector('.delete-note-btn').addEventListener('click', () => {
         const id = card.dataset.id;
         const i = notes.findIndex(x => x.id === id);
         if (i === -1) return;
@@ -196,29 +194,29 @@
     };
     notes.unshift(n);
     saveNotes(notes);
-    // If user is viewing archived-only, switch to active so the new note shows
     if (filterMode === 'archived') filterMode = 'active';
     renderNotes();
     updateDashboardCount();
   };
 
   const saveAll = () => {
-    // All changes are saved as-you-type; this ensures dashboard count stays fresh
     saveNotes(notes);
     updateDashboardCount();
   };
 
+  // Direct wiring + delegated fallback (in case buttons are replaced dynamically)
   const wire = () => {
     const addBtn = $('addNoteBtn');
     const saveBtn = $('saveNotesBtn');
-    if (addBtn && !addBtn.__NOTES_WIRED__) {
-      addBtn.addEventListener('click', addNote);
-      addBtn.__NOTES_WIRED__ = true;
-    }
-    if (saveBtn && !saveBtn.__NOTES_WIRED__) {
-      saveBtn.addEventListener('click', saveAll);
-      saveBtn.__NOTES_WIRED__ = true;
-    }
+    addBtn && !addBtn.__NOTES_WIRED__ && (addBtn.addEventListener('click', addNote), addBtn.__NOTES_WIRED__ = true);
+    saveBtn && !saveBtn.__NOTES_WIRED__ && (saveBtn.addEventListener('click', saveAll), saveBtn.__NOTES_WIRED__ = true);
+
+    document.addEventListener('click', (e) => {
+      const t = e.target;
+      if (!t) return;
+      if (t.id === 'addNoteBtn' || (t.closest && t.closest('#addNoteBtn'))) addNote();
+      if (t.id === 'saveNotesBtn' || (t.closest && t.closest('#saveNotesBtn'))) saveAll();
+    });
   };
 
   const observeViewChanges = () => {
@@ -227,12 +225,8 @@
     window.__NOTES_VIEW_OBSERVED__ = true;
 
     const onShow = () => {
-      const style = getComputedStyle(notesView);
-      const isVisible = style.display !== 'none' && notesView.offsetParent !== null;
-      if (isVisible) {
-        notes = loadNotes();
-        renderNotes();
-      }
+      notes = loadNotes();
+      renderNotes();
     };
     onShow();
     const obs = new MutationObserver(onShow);
@@ -242,8 +236,9 @@
   const start = () => {
     wire();
     observeViewChanges();
-    const nv = $('notesView');
-    if (nv && getComputedStyle(nv).display !== 'none') renderNotes();
+    // Always do an initial render so users see something immediately
+    renderNotes();
+    updateDashboardCount();
   };
 
   if (document.readyState === 'loading') {
@@ -252,7 +247,7 @@
     start();
   }
 
-  // Optional API for debugging
+  // Small API for debugging (optional)
   window.NotesModule = {
     add: addNote,
     render: renderNotes,
