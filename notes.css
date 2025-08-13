@@ -102,6 +102,51 @@ body[data-theme="dark"] .note-card:hover {
     opacity: 1;
 }
 
+/* Notes toolbar layout */
+.notes-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0.75rem 0;
+}
+
+/* Filter buttons */
+.notes-toolbar .notes-filter {
+  background-color: var(--color-accent-primary, #1E4D2B);
+  color: #fff;
+  border: none;
+  padding: 0.4rem 0.75rem;
+  margin-right: 0.4rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.notes-toolbar .notes-filter:hover {
+  background-color: #163b20; /* slightly darker green */
+}
+
+.notes-toolbar .notes-filter.active {
+  background-color: var(--color-accent-warning, #B4975A);
+}
+
+/* Clear archive button */
+.notes-clear-archived {
+  background-color: var(--color-accent-danger, #dc3545);
+  color: #fff;
+  border: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.notes-clear-archived:hover {
+  background-color: #a71d2a; /* darker red */
+}
+
 .notes-grid .empty-state {
     grid-column: 1 / -1;
 }
