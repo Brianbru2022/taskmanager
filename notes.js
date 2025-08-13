@@ -48,12 +48,12 @@
     bar.innerHTML = `
       <div class="notes-toolbar-inner">
         <div class="notes-filters" role="tablist" aria-label="Filter notes">
-          <button id="filterActive" class="notes-filter active" role="tab" aria-selected="true">Active</button>
-          <button id="filterArchived" class="notes-filter" role="tab" aria-selected="false">Archived</button>
-          <button id="filterAll" class="notes-filter" role="tab" aria-selected="false">All</button>
+          <button id="filterActive" class="btn notes-filter active" role="tab" aria-selected="true">Active</button>
+          <button id="filterArchived" class="btn notes-filter" role="tab" aria-selected="false">Archived</button>
+          <button id="filterAll" class="btn notes-filter" role="tab" aria-selected="false">All</button>
         </div>
         <div class="notes-bulk">
-          <button id="clearArchivedBtn" class="notes-clear-archived" title="Permanently delete all archived notes">Clear archive</button>
+          <button id="clearArchivedBtn" class="btn danger notes-clear-archived" title="Permanently delete all archived notes">Clear archive</button>
         </div>
       </div>
     `;
@@ -124,8 +124,8 @@
         <div class="note-card-header">
           <input class="note-title" ${n.archived ? 'disabled' : ''} value="${(n.title || '').replace(/"/g, '&quot;')}" placeholder="Untitled note" />
           <div class="note-card-actions">
-            <button class="archive-note-btn" title="${archiveTitle}">${archiveLabel}</button>
-            <button class="delete-note-btn" title="Delete">Delete</button>
+            <button class="btn ghost archive-note-btn" title="${archiveTitle}">${archiveLabel}</button>
+            <button class="btn danger delete-note-btn" title="Delete">Delete</button>
           </div>
         </div>
         <textarea class="note-body" rows="8" placeholder="Write your note..." ${n.archived ? 'disabled' : ''}>${(n.body || '')}</textarea>
