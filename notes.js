@@ -1,20 +1,25 @@
 
 /**
- * Notes Module (standalone, non-invasive) — Archiving + Fallback Wiring
- * IDs used: #notesView, #notesContainer, #addNoteBtn, #saveNotesBtn, #stat-open-notes
- * Storage key: 'notes'
+ * notes.js — v2.1
+ * Standalone Notes module with Archive/Unarchive, filters, and robust wiring.
+ * DOM IDs expected: #notesView, #notesContainer, #addNoteBtn, #saveNotesBtn, #stat-open-notes
+ * Storage: localStorage key 'notes'
  */
 (function () {
   if (window.__NOTES_MODULE_INITIALIZED__) return;
   window.__NOTES_MODULE_INITIALIZED__ = true;
+  console.log('[Notes] v2.1 loaded');
 
   const $ = (id) => document.getElementById(id);
   const qs = (sel, el = document) => el.querySelector(sel);
 
+  // Clean up any legacy placeholder messaging if present
+  document.querySelectorAll('.notes-archiving-placeholder, .archive-not-implemented').forEach(el => el.remove());
+
   const LS_KEY = 'notes';
   const loadNotes = () => {
     try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
-    catch (e) { console.warn('[Notes] Failed to parse storage', e); return []; }
+    catch { return []; }
   };
   const saveNotes = (arr) => localStorage.setItem(LS_KEY, JSON.stringify(arr || []));
 
@@ -69,12 +74,10 @@
       setActiveButton(mode === 'active' ? 'filterActive' : mode === 'archived' ? 'filterArchived' : 'filterAll');
       renderNotes();
     };
-    const fa = $('filterActive'), fr = $('filterArchived'), fall = $('filterAll');
-    fa && fa.addEventListener('click', () => applyFilter('active'));
-    fr && fr.addEventListener('click', () => applyFilter('archived'));
-    fall && fall.addEventListener('click', () => applyFilter('all'));
-    const clr = $('clearArchivedBtn');
-    clr && clr.addEventListener('click', () => {
+    $('filterActive').addEventListener('click', () => applyFilter('active'));
+    $('filterArchived').addEventListener('click', () => applyFilter('archived'));
+    $('filterAll').addEventListener('click', () => applyFilter('all'));
+    $('clearArchivedBtn').addEventListener('click', () => {
       const before = notes.length;
       notes = notes.filter(n => !n.archived);
       if (notes.length !== before) {
@@ -204,7 +207,7 @@
     updateDashboardCount();
   };
 
-  // Direct wiring + delegated fallback (in case buttons are replaced dynamically)
+  // Wire buttons (direct) + Event delegation fallback
   const wire = () => {
     const addBtn = $('addNoteBtn');
     const saveBtn = $('saveNotesBtn');
@@ -236,8 +239,7 @@
   const start = () => {
     wire();
     observeViewChanges();
-    // Always do an initial render so users see something immediately
-    renderNotes();
+    renderNotes(); // initial
     updateDashboardCount();
   };
 
@@ -247,7 +249,7 @@
     start();
   }
 
-  // Small API for debugging (optional)
+  // Optional API
   window.NotesModule = {
     add: addNote,
     render: renderNotes,
