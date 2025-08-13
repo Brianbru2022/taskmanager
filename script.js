@@ -911,6 +911,8 @@ addSampleData();
         // Sidebar navigation
         get('homeLink').addEventListener('click', (e) => { e.preventDefault(); switchView('homeView'); });
 get('tasksLink').addEventListener('click', (e) => { e.preventDefault(); switchView('tasksView'); });
+        get('notesLink').addEventListener('click', (e) => { e.preventDefault(); switchView('notesView'); });
+        get('manualLink').addEventListener('click', (e) => { e.preventDefault(); switchView('manualView'); });
         get('sitesLink').addEventListener('click', (e) => { e.preventDefault(); switchView('sitesView'); });
         get('commercialLink').addEventListener('click', (e) => { e.preventDefault(); switchView('commercialView'); });
         reportsLink.addEventListener('click', (e) => { e.preventDefault(); switchView('reportsView'); });
