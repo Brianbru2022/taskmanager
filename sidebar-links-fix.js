@@ -1,4 +1,3 @@
-
 /**
  * sidebar-links-fix.js — v1.2 (SAFE)
  * ONLY calls window.switchView(viewId). No manual show/hide.
@@ -40,30 +39,18 @@
     if (document.__SIDEBAR_DELEGATED_SAFE__) return;
     document.__SIDEBAR_DELEGATED_SAFE__ = true;
     document.addEventListener('click', (e) => {
-      const t = e.target && e.target.closest ? e.target.closest('[data-view]') : null;
-      if (!t) return;
-      const viewId = t.getAttribute('data-view');
-      if (!viewId) return;
-      e.preventDefault();
-      go(viewId);
+      const t = e.target?.closest?.('[data-view]'); if (!t) return;
+      const viewId = t.getAttribute('data-view'); if (!viewId) return;
+      e.preventDefault(); go(viewId);
     });
   }
 
   function observeSidebar() {
     const sidebar = document.querySelector('#sidebar, .sidebar, nav[role="navigation"]') || document.body;
-    const obs = new MutationObserver(wireDirect);
-    obs.observe(sidebar, { childList: true, subtree: true });
+    new MutationObserver(wireDirect).observe(sidebar, { childList: true, subtree: true });
   }
 
-  function start() {
-    wireDirect();
-    wireDelegated();
-    observeSidebar();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start, { once: true });
-  } else {
-    start();
-  }
+  function start() { wireDirect(); wireDelegated(); observeSidebar(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+  else start();
 })();
