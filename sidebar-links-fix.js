@@ -1,9 +1,7 @@
 /**
  * sidebar-links-fix.js — v1.1 (SAFE)
- * Purpose: keep Notes & Manual (and any [data-view]) links working
- * without interfering with app rendering.
- *
- * This version ONLY calls window.switchView(viewId). No fallback DOM hacking.
+ * Keeps sidebar links working without interfering with rendering.
+ * This ONLY calls window.switchView(viewId). No manual DOM show/hide.
  */
 
 (function () {
@@ -20,13 +18,13 @@
   // Wire known links once (idempotent)
   function wireDirect() {
     const map = [
-      ['notesLink',  'notesView'],
-      ['manualLink', 'manualView'],
-      ['tasksLink',  'tasksView'],
-      ['homeLink',   'homeView'],
-      ['sitesLink',  'sitesView'],
-      ['commercialLink', 'commercialView'],
-      ['reportsLink', 'reportsView'],
+      ['homeLink',      'homeView'],
+      ['tasksLink',     'tasksView'],
+      ['notesLink',     'notesView'],
+      ['manualLink',    'manualView'],
+      ['sitesLink',     'sitesView'],
+      ['commercialLink','commercialView'],
+      ['reportsLink',   'reportsView'],
     ];
 
     for (const [linkId, viewId] of map) {
@@ -34,6 +32,7 @@
       if (!el || el.__WIRED__) continue;
       el.addEventListener('click', (e) => { e.preventDefault(); go(viewId); });
       el.__WIRED__ = true;
+
       // Avoid hash-jumps if these are <a href="#">
       if (el.tagName === 'A' && (el.getAttribute('href') || '#') === '#') {
         el.setAttribute('href', 'javascript:void(0)');
