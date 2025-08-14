@@ -102,7 +102,7 @@ body[data-theme="dark"] .note-card:hover {
     opacity: 1;
 }
 
-/* Notes toolbar layout */
+/* Notes toolbar layout (default placement if not inside .notes-actions) */
 .notes-toolbar {
   display: flex;
   justify-content: space-between;
@@ -110,7 +110,7 @@ body[data-theme="dark"] .note-card:hover {
   margin: 0.75rem 0;
 }
 
-/* Filter buttons */
+/* Filter buttons (theme-aligned) */
 .notes-toolbar .notes-filter {
   background-color: var(--color-accent-primary, #1E4D2B);
   color: #fff;
@@ -150,3 +150,24 @@ body[data-theme="dark"] .note-card:hover {
 .notes-grid .empty-state {
     grid-column: 1 / -1;
 }
+
+/* --- Inline toolbar beside Save All Notes (tidy layout) --- */
+.notes-actions { display:flex; gap: 1rem; align-items:center; flex-wrap: wrap; }
+.notes-toolbar--in-actions { margin-left:auto; display:flex; align-items:center; gap:.5rem; }
+.notes-toolbar--in-actions .notes-filters { display:flex; gap:.5rem; }
+.notes-toolbar--in-actions .notes-bulk { margin-left:.5rem; }
+
+/* Compact pill look for toolbar buttons */
+.notes-toolbar .notes-filter,
+.notes-toolbar .notes-clear-archived {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border-radius: 8px;
+  padding: .45rem .7rem;
+  font-size: .85rem;
+  line-height: 1;
+}
+
+/* Ensure active state remains themed even with app .btn classes */
+.notes-toolbar .notes-filter.active { background: var(--color-accent-warning, #B4975A); color:#fff; }
