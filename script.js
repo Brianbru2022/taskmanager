@@ -1,7 +1,6 @@
 (() => {
     // --- STATE MANAGEMENT ---
-    let tasks = [];
-    let notes = []; let categories = {}; let people = {}; let passwords = []; let websites = []; let activeAssigneeSelect = null; let expandedSubtasks = new Set();
+    let tasks = []; let categories = {}; let people = {}; let passwords = []; let websites = []; let activeAssigneeSelect = null; let expandedSubtasks = new Set();
     const KANBAN_STATUSES = ['Open', 'In Progress', 'Closed'];
     const SUBTASK_COLORS = ['subtask-color-1', 'subtask-color-2', 'subtask-color-3', 'subtask-color-4', 'subtask-color-5'];
     let currentEditingTask = null;
@@ -9,9 +8,7 @@
 
     // --- UTILITY & HELPER FUNCTIONS ---
     const saveState = () => { localStorage.setItem('tasks', JSON.stringify(tasks)); localStorage.setItem('categories', JSON.stringify(categories)); localStorage.setItem('people', JSON.stringify(people)); localStorage.setItem('passwords',
-JSON.stringify(passwords)); localStorage.setItem('websites', JSON.stringify(websites));
-        localStorage.setItem('notes', JSON.stringify(notes));
-        renderAndPopulate(); };
+JSON.stringify(passwords)); localStorage.setItem('websites', JSON.stringify(websites)); renderAndPopulate(); };
     const generateRandomColor = () => `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`;
     const getInitials = (name) => (name || '').split(' ').map(n => n[0]).join('').toUpperCase();
     const getNextId = (prefix = 'TASK') => `${prefix}-${Date.now()}`;
@@ -55,8 +52,7 @@ const sanitizePassword = (p) => ({ id: getNextId('PWD'), service: 'Untitled', us
     const sanitizeWebsite = (w) => ({ id: getNextId('WEB'), service: 'Untitled', username: '', value: '', link: '', ...w });
 const loadData = () => { try { tasks = (JSON.parse(localStorage.getItem('tasks')) || []).map(sanitizeTask); categories = JSON.parse(localStorage.getItem('categories')) || {};
 people = JSON.parse(localStorage.getItem('people')) || {}; passwords = (JSON.parse(localStorage.getItem('passwords')) || []).map(sanitizePassword);
-        notes = JSON.parse(localStorage.getItem('notes') || '[]');
-websites = (JSON.parse(localStorage.getItem('websites')) || []).map(sanitizeWebsite);
+        websites = (JSON.parse(localStorage.getItem('websites')) || []).map(sanitizeWebsite);
 } catch (error) { console.error("Failed to load data, starting fresh.", error); localStorage.clear(); } };
 const addSampleData = () => { if (tasks.length > 0 || Object.keys(people).length > 0) return;
 people = { 'Alice Johnson': '#0d6efd', 'Bob Smith': '#dc3545', 'Charlie Brown': '#ffc107', 'Diana Prince': '#6f42c1' };
@@ -492,6 +488,15 @@ const reportTasks = tasks.filter(task => !task.isArchived && selectedUsers.some(
     };
 const generateOverdueReport = () => { const overdueTasks = tasks.filter(task => !task.isArchived && new Date(task.dueDate) < new Date() && !['Closed'].includes(task.status));
 if (overdueTasks.length === 0) { alert('No overdue tasks found.'); return; } triggerPrint(generateReportHTML('Overdue Tasks Report', overdueTasks)); };
+
+
+const generateCategoryReport = () => { 
+    const reportTasks = tasks.filter(task => !task.isArchived && !['Closed'].includes(task.status));
+    if (reportTasks.length === 0) { alert('No open or in-progress tasks found.'); return; }
+    // Sort by category name (undefined -> 'Uncategorised')
+    reportTasks.sort((a, b) => ((a.category || 'Uncategorised').localeCompare(b.category || 'Uncategorised')));
+    triggerPrint(generateReportHTML('Tasks by Category', reportTasks));
+};
 // --- SETTINGS MODAL ---
     const isPersonInUse = (personName) => {
         const checkTasks = (taskList) => {
@@ -802,51 +807,7 @@ openModal(linkModal);
         openModal(get('archiveModal'));
     };
 
-    
-    // --- NOTES RENDERING ---
-    const renderNotes = () => {
-        const container = get('notesContainer');
-        if (!container) return;
-        container.innerHTML = '';
-        if (!Array.isArray(notes)) notes = [];
-        notes.forEach((n, idx) => {
-            const card = document.createElement('div');
-            card.className = 'note-card';
-            card.innerHTML = `
-                <div class="note-head">
-                    <input class="note-title" value="${n.title || 'Untitled'}" />
-                    <button class="btn btn-danger btn-sm" data-idx="${idx}" aria-label="Delete note">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-                <textarea class="note-body" rows="6" placeholder="Write your note...">${n.body || ''}</textarea>
-                <div class="note-meta">Updated: ${formatDate(n.updatedAt)}</div>
-            `;
-            const titleEl = card.querySelector('.note-title');
-            const bodyEl  = card.querySelector('.note-body');
-            titleEl.addEventListener('input', () => {
-                notes[idx].title = titleEl.value;
-                notes[idx].updatedAt = new Date().toISOString();
-            });
-            bodyEl.addEventListener('input', () => {
-                notes[idx].body = bodyEl.value;
-                notes[idx].updatedAt = new Date().toISOString();
-            });
-            card.querySelector('button.btn-danger').addEventListener('click', () => {
-                notes.splice(idx, 1);
-                saveState();
-                renderNotes();
-                updateNotesStat();
-                showToast('Note deleted');
-            });
-            container.appendChild(card);
-        });
-    };
-    const updateNotesStat = () => {
-        const el = get('stat-open-notes');
-        if (el) el.textContent = (Array.isArray(notes) ? notes.length : 0);
-    };
-const renderDashboard = () => {
+    const renderDashboard = () => {
         const activeTasks = tasks.filter(t => !t.isArchived);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -930,11 +891,9 @@ if(activeLink) {
 }
 
         if (targetViewId === 'homeView') {
-            updateNotesStat();
             renderDashboard();
         }
         
-        if (targetViewId === 'notesView') { renderNotes(); }
         const isTaskView = targetViewId === 'tasksView';
         openNewTaskModalBtn.style.display = isTaskView ? 'flex' : 'none';
         get('search-container').style.display = isTaskView ? 'flex' : 'none';
@@ -961,35 +920,9 @@ addSampleData();
         // Sidebar navigation
         get('homeLink').addEventListener('click', (e) => { e.preventDefault(); switchView('homeView'); });
 get('tasksLink').addEventListener('click', (e) => { e.preventDefault(); switchView('tasksView'); });
-        get('notesLink').addEventListener('click', (e) => { e.preventDefault(); switchView('notesView'); });
-        get('manualLink').addEventListener('click', (e) => { e.preventDefault(); switchView('manualView'); });
         get('sitesLink').addEventListener('click', (e) => { e.preventDefault(); switchView('sitesView'); });
         get('commercialLink').addEventListener('click', (e) => { e.preventDefault(); switchView('commercialView'); });
         reportsLink.addEventListener('click', (e) => { e.preventDefault(); switchView('reportsView'); });
-        const addNoteBtn = get('addNoteBtn');
-        const saveNotesBtn = get('saveNotesBtn');
-        if (addNoteBtn) {
-            addNoteBtn.addEventListener('click', () => {
-                notes.unshift({
-                    id: `NOTE-${Date.now()}`,
-                    title: 'New note',
-                    body: '',
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                });
-                saveState();
-                renderNotes();
-                updateNotesStat();
-                showToast('New note added');
-            });
-        }
-        if (saveNotesBtn) {
-            saveNotesBtn.addEventListener('click', () => {
-                saveState();
-                updateNotesStat();
-                showToast('All notes saved');
-            });
-        }
 taskStatusSelect.addEventListener('change', (e) => {
             if (e.target.value === 'In Progress') {
                 progressContainer.style.display = 'block';
@@ -1173,6 +1106,8 @@ addNewCategoryBtn.addEventListener('click', () => openModal(categoryModal));
         });
 get('generateAssigneeReportBtn').addEventListener('click', generateAssigneeReport);
         get('generateOverdueReportBtn').addEventListener('click', generateOverdueReport);
+get('generateCategoryReportBtn').addEventListener('click', generateCategoryReport);
+
 
 [assigneeFilter, categoryFilter, sortByDate, closedTasksFilter].forEach(el => el.addEventListener('change', renderKanbanBoard));
         globalSearchInput.addEventListener('input', renderKanbanBoard);
