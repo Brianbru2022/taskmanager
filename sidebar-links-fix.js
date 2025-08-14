@@ -1,93 +1,65 @@
-
 /**
- * sidebar-links-fix.js
- * Keeps Notes & Manual icons working across re-renders.
- * IDs supported:
- *   #notesLink  -> #notesView
- *   #manualLink -> #manualView
- * Also supports [data-view="..."] links.
+ * sidebar-links-fix.js — v1.1 (SAFE)
+ * Purpose: keep Notes & Manual (and any [data-view]) links working
+ * without interfering with app rendering.
+ *
+ * This version ONLY calls window.switchView(viewId). No fallback DOM hacking.
  */
+
 (function () {
   const $  = (id) => document.getElementById(id);
-  const qs = (sel, el=document) => el.querySelector(sel);
-
-  function getViewEl(viewId) { return viewId ? document.getElementById(viewId) : null; }
 
   function go(viewId) {
     if (typeof window.switchView === 'function') {
-      try { window.switchView(viewId); return; } catch (e) {}
-    }
-    const targets = ['homeView','tasksView','notesView','manualView','sitesView','commercialView','reportsView'];
-    targets.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = (id === viewId ? '' : 'none');
-    });
-    const headingMap = {
-      homeView:'Dashboard', tasksView:'Tasks', notesView:'My Notes',
-      manualView:'Manual', sitesView:'Sites', commercialView:'Commercial', reportsView:'Reports'
-    };
-    const h = document.getElementById('pageTitle');
-    if (h && headingMap[viewId]) h.textContent = headingMap[viewId];
-  }
-
-  function sanitizeAnchor(el) {
-    if (!el) return;
-    if (el.tagName === 'A' && (el.getAttribute('href') || '#') === '#') {
-      el.setAttribute('href', 'javascript:void(0)');
+      window.switchView(viewId);
+    } else {
+      console.warn('[SidebarFix] switchView() not found; no-op for', viewId);
     }
   }
 
+  // Wire known links once (idempotent)
   function wireDirect() {
-    const notes = $('notesLink');
-    const manual = $('manualLink');
+    const map = [
+      ['notesLink',  'notesView'],
+      ['manualLink', 'manualView'],
+      ['tasksLink',  'tasksView'],
+      ['homeLink',   'homeView'],
+      ['sitesLink',  'sitesView'],
+      ['commercialLink', 'commercialView'],
+      ['reportsLink', 'reportsView'],
+    ];
 
-    if (notes && !notes.__WIRED__) {
-      notes.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (!getViewEl('notesView')) { console.warn('[SidebarFix] #notesView not found'); return; }
-        go('notesView');
-      });
-      notes.__WIRED__ = true;
-      sanitizeAnchor(notes);
-    }
-
-    if (manual && !manual.__WIRED__) {
-      manual.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (!getViewEl('manualView')) { console.warn('[SidebarFix] #manualView not found'); return; }
-        go('manualView');
-      });
-      manual.__WIRED__ = true;
-      sanitizeAnchor(manual);
+    for (const [linkId, viewId] of map) {
+      const el = $(linkId);
+      if (!el || el.__WIRED__) continue;
+      el.addEventListener('click', (e) => { e.preventDefault(); go(viewId); });
+      el.__WIRED__ = true;
+      // Avoid hash-jumps if these are <a href="#">
+      if (el.tagName === 'A' && (el.getAttribute('href') || '#') === '#') {
+        el.setAttribute('href', 'javascript:void(0)');
+      }
     }
   }
 
+  // Delegated support for any element using data-view="..."
   function wireDelegated() {
-    if (document.__SIDEBAR_DELEGATED__) return;
-    document.__SIDEBAR_DELEGATED__ = true;
+    if (document.__SIDEBAR_DELEGATED_SAFE__) return;
+    document.__SIDEBAR_DELEGATED_SAFE__ = true;
+
     document.addEventListener('click', (e) => {
-      const t = e.target && e.target.closest
-        ? e.target.closest('#notesLink, #manualLink, [data-view]')
-        : null;
+      const t = e.target && e.target.closest ? e.target.closest('[data-view]') : null;
       if (!t) return;
-
-      let viewId = null;
-      if (t.id === 'notesLink')  viewId = 'notesView';
-      if (t.id === 'manualLink') viewId = 'manualView';
-      if (!viewId && t.hasAttribute && t.hasAttribute('data-view')) viewId = t.getAttribute('data-view');
-
+      const viewId = t.getAttribute('data-view');
       if (!viewId) return;
-      const v = getViewEl(viewId);
-      if (!v) { console.warn('[SidebarFix] view not found:', viewId); return; }
-
       e.preventDefault();
       go(viewId);
     });
   }
 
+  // If your sidebar gets re-rendered, re-wire the direct listeners
   function observeSidebar() {
-    const sidebar = qs('#sidebar, .sidebar, nav[role="navigation"]') || document.body;
-    const obs = new MutationObserver(() => wireDirect());
+    const sidebar = document.querySelector('#sidebar, .sidebar, nav[role="navigation"]') || document.body;
+    const obs = new MutationObserver(wireDirect);
     obs.observe(sidebar, { childList: true, subtree: true });
   }
 
@@ -98,7 +70,7 @@
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start, { once:true });
+    document.addEventListener('DOMContentLoaded', start, { once: true });
   } else {
     start();
   }
