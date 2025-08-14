@@ -1,20 +1,18 @@
-
 /**
- * notes.js — v2.1
- * Standalone Notes module with Archive/Unarchive, filters, and robust wiring.
- * DOM IDs expected: #notesView, #notesContainer, #addNoteBtn, #saveNotesBtn, #stat-open-notes
- * Storage: localStorage key 'notes'
+ * notes.js — v2.2
+ * Standalone Notes module
+ * - Add / Save buttons (direct listeners only — prevents double firing)
+ * - Archive/Unarchive + Active/Archived/All filters
+ * - Toolbar placed inside .notes-actions (to the right) when available
+ * - Persists to localStorage key 'notes'
  */
 (function () {
   if (window.__NOTES_MODULE_INITIALIZED__) return;
   window.__NOTES_MODULE_INITIALIZED__ = true;
-  console.log('[Notes] v2.1 loaded');
+  console.log('[Notes] v2.2 loaded');
 
-  const $ = (id) => document.getElementById(id);
-  const qs = (sel, el = document) => el.querySelector(sel);
-
-  // Clean up any legacy placeholder messaging if present
-  document.querySelectorAll('.notes-archiving-placeholder, .archive-not-implemented').forEach(el => el.remove());
+  const $  = (id) => document.getElementById(id);
+  const qs = (sel, el=document) => el.querySelector(sel);
 
   const LS_KEY = 'notes';
   const loadNotes = () => {
@@ -37,7 +35,7 @@
     if (el) el.textContent = countActive();
   };
 
-  const ensureToolbar = () => {
+  function ensureToolbar() {
     const container = $('notesContainer');
     if (!container) return;
     if ($('notesToolbar')) return;
@@ -57,8 +55,15 @@
         </div>
       </div>
     `;
-    const parent = container.parentElement || $('notesView') || document.body;
-    parent.insertBefore(bar, container);
+
+    const actionsRow = qs('.notes-actions');
+    if (actionsRow) {
+      actionsRow.appendChild(bar);
+      bar.classList.add('notes-toolbar--in-actions');
+    } else {
+      const parent = container.parentElement || $('notesView') || document.body;
+      parent.insertBefore(bar, container);
+    }
 
     const setActiveButton = (id) => {
       ['filterActive','filterArchived','filterAll'].forEach(btnId => {
@@ -86,9 +91,9 @@
         updateDashboardCount();
       }
     });
-  };
+  }
 
-  const renderNotes = () => {
+  function renderNotes() {
     const container = $('notesContainer');
     if (!container) { console.warn('[Notes] #notesContainer not found'); return; }
     ensureToolbar();
@@ -154,7 +159,7 @@
       titleEl && titleEl.addEventListener('input', () => { clearTimeout(tTimer); tTimer = setTimeout(commitUpdate, 150); });
       bodyEl  && bodyEl.addEventListener('input',  () => { clearTimeout(bTimer); bTimer = setTimeout(commitUpdate, 200); });
 
-      card.querySelector('.archive-note-btn').addEventListener('click', () => {
+      qs('.archive-note-btn', card).addEventListener('click', () => {
         const id = card.dataset.id;
         const i = notes.findIndex(x => x.id === id);
         if (i === -1) return;
@@ -170,7 +175,7 @@
         updateDashboardCount();
       });
 
-      card.querySelector('.delete-note-btn').addEventListener('click', () => {
+      qs('.delete-note-btn', card).addEventListener('click', () => {
         const id = card.dataset.id;
         const i = notes.findIndex(x => x.id === id);
         if (i === -1) return;
@@ -184,9 +189,9 @@
     });
 
     updateDashboardCount();
-  };
+  }
 
-  const addNote = () => {
+  function addNote() {
     const n = {
       id: 'NOTE-' + Date.now() + '-' + Math.random().toString(36).slice(2,6),
       title: 'New note',
@@ -200,61 +205,65 @@
     if (filterMode === 'archived') filterMode = 'active';
     renderNotes();
     updateDashboardCount();
-  };
+  }
 
-  const saveAll = () => {
+  function saveAll() {
     saveNotes(notes);
     updateDashboardCount();
-  };
+  }
 
-  // Wire buttons (direct) + Event delegation fallback
-  const wire = () => {
-    const addBtn = $('addNoteBtn');
+  function wireButtons() {
+    const addBtn  = $('addNoteBtn');
     const saveBtn = $('saveNotesBtn');
-    addBtn && !addBtn.__NOTES_WIRED__ && (addBtn.addEventListener('click', addNote), addBtn.__NOTES_WIRED__ = true);
-    saveBtn && !saveBtn.__NOTES_WIRED__ && (saveBtn.addEventListener('click', saveAll), saveBtn.__NOTES_WIRED__ = true);
 
-    document.addEventListener('click', (e) => {
-      const t = e.target;
-      if (!t) return;
-      if (t.id === 'addNoteBtn' || (t.closest && t.closest('#addNoteBtn'))) addNote();
-      if (t.id === 'saveNotesBtn' || (t.closest && t.closest('#saveNotesBtn'))) saveAll();
-    });
-  };
+    if (addBtn && !addBtn.__WIRED__) {
+      addBtn.addEventListener('click', (e) => { e.preventDefault(); addNote(); });
+      addBtn.__WIRED__ = true;
+      if (addBtn.tagName === 'A' && (addBtn.getAttribute('href') || '#') === '#') {
+        addBtn.setAttribute('href', 'javascript:void(0)');
+      }
+    }
+    if (saveBtn && !saveBtn.__WIRED__) {
+      saveBtn.addEventListener('click', (e) => { e.preventDefault(); saveAll(); });
+      saveBtn.__WIRED__ = true;
+      if (saveBtn.tagName === 'A' && (saveBtn.getAttribute('href') || '#') === '#') {
+        saveBtn.setAttribute('href', 'javascript:void(0)');
+      }
+    }
+  }
 
-  const observeViewChanges = () => {
+  function observeNotesView() {
     const notesView = $('notesView');
     if (!notesView || window.__NOTES_VIEW_OBSERVED__) return;
     window.__NOTES_VIEW_OBSERVED__ = true;
 
     const onShow = () => {
       notes = loadNotes();
+      wireButtons();
       renderNotes();
     };
     onShow();
     const obs = new MutationObserver(onShow);
-    obs.observe(notesView, { attributes: true, attributeFilter: ['style', 'class'] });
-  };
+    obs.observe(notesView, { attributes: true, childList: true, subtree: true });
+  }
 
-  const start = () => {
-    wire();
-    observeViewChanges();
-    renderNotes(); // initial
+  function start() {
+    wireButtons();
+    observeNotesView();
+    renderNotes();
     updateDashboardCount();
-  };
+  }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start, { once: true });
+    document.addEventListener('DOMContentLoaded', start, { once:true });
   } else {
     start();
   }
 
-  // Optional API
+  // Debug helpers
   window.NotesModule = {
-    add: addNote,
-    render: renderNotes,
+    add: addNote, render: renderNotes,
     load: () => (notes = loadNotes(), renderNotes(), notes),
-    save: saveAll,
-    filter: (mode) => { filterMode = mode; renderNotes(); }
+    save: saveAll, filter: (m) => { filterMode = m; renderNotes(); }
   };
 })();
