@@ -487,16 +487,15 @@ const reportTasks = tasks.filter(task => !task.isArchived && selectedUsers.some(
         closeModal(get('reportConfigModal'));
     };
 const generateOverdueReport = () => { const overdueTasks = tasks.filter(task => !task.isArchived && new Date(task.dueDate) < new Date() && !['Closed'].includes(task.status));
-if (overdueTasks.length === 0) { alert('No overdue tasks found.'); return; } triggerPrint(generateReportHTML('Overdue Tasks Report', overdueTasks)); };
-
-
 const generateCategoryReport = () => { 
-    const reportTasks = tasks.filter(task => !task.isArchived && !['Closed'].includes(task.status));
-    if (reportTasks.length === 0) { alert('No open or in-progress tasks found.'); return; }
-    // Sort by category name (undefined -> 'Uncategorised')
-    reportTasks.sort((a, b) => ((a.category || 'Uncategorised').localeCompare(b.category || 'Uncategorised')));
-    triggerPrint(generateReportHTML('Tasks by Category', reportTasks));
-};
+        const reportTasks = tasks
+            .filter(task => !task.isArchived && task.status !== 'Closed')
+            .sort((a, b) => ((a.category || 'Uncategorised').localeCompare(b.category || 'Uncategorised')));
+        if (reportTasks.length === 0) { alert('No open or in-progress tasks found.'); return; }
+        triggerPrint(generateReportHTML('Tasks by Category', reportTasks));
+    };
+
+if (overdueTasks.length === 0) { alert('No overdue tasks found.'); return; } triggerPrint(generateReportHTML('Overdue Tasks Report', overdueTasks)); };
 // --- SETTINGS MODAL ---
     const isPersonInUse = (personName) => {
         const checkTasks = (taskList) => {
@@ -919,7 +918,9 @@ addSampleData();
 
         // Sidebar navigation
         get('homeLink').addEventListener('click', (e) => { e.preventDefault(); switchView('homeView'); });
-get('tasksLink').addEventListener('click', (e) => { e.preventDefault(); switchView('tasksView'); });
+get('notesLink').addEventListener('click', (e) => { e.preventDefault(); switchView('notesView'); });
+        get('manualLink').addEventListener('click', (e) => { e.preventDefault(); switchView('manualView'); });
+        get('tasksLink').addEventListener('click', (e) => { e.preventDefault(); switchView('tasksView'); });
         get('sitesLink').addEventListener('click', (e) => { e.preventDefault(); switchView('sitesView'); });
         get('commercialLink').addEventListener('click', (e) => { e.preventDefault(); switchView('commercialView'); });
         reportsLink.addEventListener('click', (e) => { e.preventDefault(); switchView('reportsView'); });
@@ -1106,7 +1107,7 @@ addNewCategoryBtn.addEventListener('click', () => openModal(categoryModal));
         });
 get('generateAssigneeReportBtn').addEventListener('click', generateAssigneeReport);
         get('generateOverdueReportBtn').addEventListener('click', generateOverdueReport);
-get('generateCategoryReportBtn').addEventListener('click', generateCategoryReport);
+        get('generateCategoryReportBtn').addEventListener('click', generateCategoryReport);
 
 
 [assigneeFilter, categoryFilter, sortByDate, closedTasksFilter].forEach(el => el.addEventListener('change', renderKanbanBoard));
@@ -1214,4 +1215,13 @@ queryAll('.modal').forEach(modal => { modal.addEventListener('click', e => { if 
         renderAndPopulate();
     };
 initialize();
+
+    // Delegated fallback for sidebar links to survive DOM changes
+    document.addEventListener('click', (e) => {
+        const t = e.target.closest && e.target.closest('#notesLink, #manualLink');
+        if (!t) return;
+        e.preventDefault();
+        if (t.id === 'notesLink')  { switchView('notesView'); return; }
+        if (t.id === 'manualLink') { switchView('manualView'); return; }
+    });
 })();
