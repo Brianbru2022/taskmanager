@@ -896,7 +896,11 @@ if(activeLink) {
         const isTaskView = targetViewId === 'tasksView';
         openNewTaskModalBtn.style.display = isTaskView ? 'flex' : 'none';
         get('search-container').style.display = isTaskView ? 'flex' : 'none';
-    };
+    
+        if (isTaskView && typeof renderKanbanBoard === 'function') {
+            try { renderKanbanBoard(); } catch (e) { console.error('renderKanbanBoard failed:', e); }
+        }
+};
 
     // --- INITIALIZATION ---
     const initialize = () => {
@@ -1229,6 +1233,14 @@ initialize();
 try {
   if (typeof window !== 'undefined') {
     window.renderTasks = window.renderTasks || renderKanbanBoard;
+
+    // also expose switchView to helpers
+    try {
+      if (typeof window !== 'undefined') {
+        window.switchView = window.switchView || switchView;
+      }
+    } catch {}
+
   }
 } catch {}
 
