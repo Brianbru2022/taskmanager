@@ -1,173 +1,148 @@
 /* Notes View */
 .notes-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin-top: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
 }
 
 .notes-actions {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
 }
 
+/* Cards */
 .note-card {
-    background-color: var(--color-bg-card);
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius-md);
-    padding: 1.25rem;
-    box-shadow: var(--card-shadow);
-    display: flex;
-    flex-direction: column;
-    min-height: 250px;
-    position: relative;
-    transition: all 0.2s ease;
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  padding: 1.25rem;
+  box-shadow: var(--card-shadow);
+  display: flex;
+  flex-direction: column;
+  min-height: 250px;
+  position: relative;
+  transition: all 0.2s ease;
 }
 
 .note-card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
 }
 
 body[data-theme="dark"] .note-card:hover {
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
 .note-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
 }
 
 .note-card .note-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    border: none;
-    background: transparent;
-    color: var(--color-text-primary);
-    width: 100%;
-    padding: 0;
-    margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  width: 100%;
+  padding: 0;
+  margin: 0;
 }
-
 .note-card .note-title:focus {
-    outline: none;
-    border-bottom: 1px solid var(--color-accent-primary);
+  outline: none;
+  border-bottom: 1px solid var(--color-accent-primary);
 }
 
 .note-card .note-body {
-    flex-grow: 1;
-    border: none;
-    background: transparent;
-    color: var(--color-text-primary);
-    font-size: 0.95rem;
-    line-height: 1.6;
-    padding: 0;
-    width: 100%;
-    resize: none;
+  flex-grow: 1;
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  padding: 0;
+  width: 100%;
+  resize: none;
 }
-
-.note-card .note-body:focus {
-    outline: none;
-}
+.note-card .note-body:focus { outline: none; }
 
 .note-card-actions {
-    display: flex;
-    gap: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
 }
-
 .note-card .archive-note-btn,
 .note-card .delete-note-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.1rem;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-    flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  opacity: 0.8;
+  transition: opacity .2s, transform .05s;
+  flex-shrink: 0;
+  padding: .4rem .6rem;
+  border-radius: 8px;
 }
-
-.note-card .archive-note-btn {
-    color: var(--color-accent-warning);
-}
-
-.note-card .delete-note-btn {
-    color: var(--color-accent-danger);
-}
-
+.note-card .archive-note-btn { color: var(--color-accent-warning); }
+.note-card .delete-note-btn  { color: var(--color-accent-danger); }
 .note-card .archive-note-btn:hover,
-.note-card .delete-note-btn:hover {
-    opacity: 1;
-}
+.note-card .delete-note-btn:hover { opacity: 1; }
+.note-card .archive-note-btn:active,
+.note-card .delete-note-btn:active { transform: translateY(1px); }
 
-/* Notes toolbar layout (default placement if not inside .notes-actions) */
+/* Toolbar default (if not injected inline) */
 .notes-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 0.75rem 0;
+  margin: .75rem 0;
 }
 
-/* Filter buttons (theme-aligned) */
-.notes-toolbar .notes-filter {
-  background-color: var(--color-accent-primary, #1E4D2B);
-  color: #fff;
-  border: none;
-  padding: 0.4rem 0.75rem;
-  margin-right: 0.4rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
+/* When notes.js injects the toolbar inline, keep it to the right of Save All Notes */
+.notes-toolbar--in-actions {
+  margin-left: auto;        /* push to the right of the row */
+  display: flex;
+  align-items: center;
+  gap: .5rem;
 }
+.notes-toolbar--in-actions .notes-filters { display: flex; gap: .5rem; }
+.notes-toolbar--in-actions .notes-bulk { margin-left: .5rem; }
 
-.notes-toolbar .notes-filter:hover {
-  background-color: #163b20; /* slightly darker green */
-}
-
-.notes-toolbar .notes-filter.active {
-  background-color: var(--color-accent-warning, #B4975A);
-}
-
-/* Clear archive button */
-.notes-clear-archived {
-  background-color: var(--color-accent-danger, #dc3545);
-  color: #fff;
-  border: none;
-  padding: 0.4rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.notes-clear-archived:hover {
-  background-color: #a71d2a; /* darker red */
-}
-
-.notes-grid .empty-state {
-    grid-column: 1 / -1;
-}
-
-/* --- Inline toolbar beside Save All Notes (tidy layout) --- */
-.notes-actions { display:flex; gap: 1rem; align-items:center; flex-wrap: wrap; }
-.notes-toolbar--in-actions { margin-left:auto; display:flex; align-items:center; gap:.5rem; }
-.notes-toolbar--in-actions .notes-filters { display:flex; gap:.5rem; }
-.notes-toolbar--in-actions .notes-bulk { margin-left:.5rem; }
-
-/* Compact pill look for toolbar buttons */
+/* Compact, pill-like chips (theme-aware) */
 .notes-toolbar .notes-filter,
 .notes-toolbar .notes-clear-archived {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  border-radius: 8px;
-  padding: .45rem .7rem;
-  font-size: .85rem;
+  border: none;
+  border-radius: 10px;
+  padding: .42rem .7rem;
   line-height: 1;
+  font-size: .85rem;
+  font-weight: 600;
+  box-shadow: 0 1px 1px rgba(0,0,0,.06);
 }
 
-/* Ensure active state remains themed even with app .btn classes */
-.notes-toolbar .notes-filter.active { background: var(--color-accent-warning, #B4975A); color:#fff; }
+/* Colors aligned with your app buttons */
+.notes-toolbar .notes-filter {
+  background: var(--color-accent-primary, #1E4D2B);
+  color: #fff;
+}
+.notes-toolbar .notes-filter:hover { filter: brightness(.92); }
+.notes-toolbar .notes-filter.active {
+  background: var(--color-accent-warning, #B4975A);
+  color: #fff;
+}
+
+.notes-toolbar .notes-clear-archived {
+  background: var(--color-accent-danger, #dc3545);
+  color: #fff;
+}
+.notes-toolbar .notes-clear-archived:hover { filter: brightness(.9); }
+
+.notes-grid .empty-state { grid-column: 1 / -1; }
