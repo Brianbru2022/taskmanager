@@ -1,15 +1,15 @@
+
 /**
- * notes.js — v2.2
- * Standalone Notes module
- * - Add / Save buttons (direct listeners only — prevents double firing)
- * - Archive/Unarchive + Active/Archived/All filters
- * - Toolbar placed inside .notes-actions (to the right) when available
- * - Persists to localStorage key 'notes'
+ * notes.js — v2.3
+ * - Direct listeners only (prevents double-add)
+ * - Archive/Unarchive + filters
+ * - Places toolbar inline after Save button inside .notes-actions (if present)
+ * - Persists to localStorage
  */
 (function () {
   if (window.__NOTES_MODULE_INITIALIZED__) return;
   window.__NOTES_MODULE_INITIALIZED__ = true;
-  console.log('[Notes] v2.2 loaded');
+  console.log('[Notes] v2.3 loaded');
 
   const $  = (id) => document.getElementById(id);
   const qs = (sel, el=document) => el.querySelector(sel);
@@ -22,7 +22,7 @@
   const saveNotes = (arr) => localStorage.setItem(LS_KEY, JSON.stringify(arr || []));
 
   let notes = loadNotes();
-  let filterMode = 'active'; // 'active' | 'archived' | 'all'
+  let filterMode = 'active';
 
   const fmtDate = (iso) => {
     try { return new Date(iso || Date.now()).toLocaleString(); }
@@ -38,29 +38,40 @@
   function ensureToolbar() {
     const container = $('notesContainer');
     if (!container) return;
-    if ($('notesToolbar')) return;
-
-    const bar = document.createElement('div');
-    bar.id = 'notesToolbar';
-    bar.className = 'notes-toolbar';
-    bar.innerHTML = `
-      <div class="notes-toolbar-inner">
-        <div class="notes-filters" role="tablist" aria-label="Filter notes">
-          <button id="filterActive" class="btn notes-filter active" role="tab" aria-selected="true">Active</button>
-          <button id="filterArchived" class="btn notes-filter" role="tab" aria-selected="false">Archived</button>
-          <button id="filterAll" class="btn notes-filter" role="tab" aria-selected="false">All</button>
+    let bar = $('notesToolbar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'notesToolbar';
+      bar.className = 'notes-toolbar';
+      bar.innerHTML = `
+        <div class="notes-toolbar-inner">
+          <div class="notes-filters" role="tablist" aria-label="Filter notes">
+            <button id="filterActive" class="btn notes-filter active" role="tab" aria-selected="true">Active</button>
+            <button id="filterArchived" class="btn notes-filter" role="tab" aria-selected="false">Archived</button>
+            <button id="filterAll" class="btn notes-filter" role="tab" aria-selected="false">All</button>
+          </div>
+          <div class="notes-bulk">
+            <button id="clearArchivedBtn" class="btn danger notes-clear-archived" title="Permanently delete all archived notes">Clear archive</button>
+          </div>
         </div>
-        <div class="notes-bulk">
-          <button id="clearArchivedBtn" class="btn danger notes-clear-archived" title="Permanently delete all archived notes">Clear archive</button>
-        </div>
-      </div>
-    `;
+      `;
+    }
 
+    // Preferred placement: after Save button inside .notes-actions
     const actionsRow = qs('.notes-actions');
-    if (actionsRow) {
-      actionsRow.appendChild(bar);
+    const saveBtn = $('saveNotesBtn');
+    if (actionsRow && saveBtn) {
+      if (!bar.parentElement || bar.parentElement !== actionsRow) {
+        // Insert directly after save button
+        if (saveBtn.nextSibling) {
+          actionsRow.insertBefore(bar, saveBtn.nextSibling);
+        } else {
+          actionsRow.appendChild(bar);
+        }
+      }
       bar.classList.add('notes-toolbar--in-actions');
-    } else {
+    } else if (!bar.parentElement) {
+      // Fallback: place above container
       const parent = container.parentElement || $('notesView') || document.body;
       parent.insertBefore(bar, container);
     }
@@ -79,10 +90,10 @@
       setActiveButton(mode === 'active' ? 'filterActive' : mode === 'archived' ? 'filterArchived' : 'filterAll');
       renderNotes();
     };
-    $('filterActive').addEventListener('click', () => applyFilter('active'));
-    $('filterArchived').addEventListener('click', () => applyFilter('archived'));
-    $('filterAll').addEventListener('click', () => applyFilter('all'));
-    $('clearArchivedBtn').addEventListener('click', () => {
+    $('filterActive').onclick = () => applyFilter('active');
+    $('filterArchived').onclick = () => applyFilter('archived');
+    $('filterAll').onclick = () => applyFilter('all');
+    $('clearArchivedBtn').onclick = () => {
       const before = notes.length;
       notes = notes.filter(n => !n.archived);
       if (notes.length !== before) {
@@ -90,7 +101,7 @@
         renderNotes();
         updateDashboardCount();
       }
-    });
+    };
   }
 
   function renderNotes() {
@@ -139,8 +150,8 @@
         </div>
       `;
 
-      const titleEl = qs('.note-title', card);
-      const bodyEl  = qs('.note-body', card);
+      const titleEl = card.querySelector('.note-title');
+      const bodyEl  = card.querySelector('.note-body');
 
       const commitUpdate = () => {
         const id = card.dataset.id;
@@ -151,7 +162,7 @@
         notes[i].body  = bodyEl.value;
         notes[i].updatedAt = new Date().toISOString();
         saveNotes(notes);
-        const meta = qs('.note-meta', card);
+        const meta = card.querySelector('.note-meta');
         if (meta) meta.textContent = 'Updated: ' + fmtDate(notes[i].updatedAt);
       };
 
@@ -159,7 +170,7 @@
       titleEl && titleEl.addEventListener('input', () => { clearTimeout(tTimer); tTimer = setTimeout(commitUpdate, 150); });
       bodyEl  && bodyEl.addEventListener('input',  () => { clearTimeout(bTimer); bTimer = setTimeout(commitUpdate, 200); });
 
-      qs('.archive-note-btn', card).addEventListener('click', () => {
+      card.querySelector('.archive-note-btn').addEventListener('click', () => {
         const id = card.dataset.id;
         const i = notes.findIndex(x => x.id === id);
         if (i === -1) return;
@@ -175,7 +186,7 @@
         updateDashboardCount();
       });
 
-      qs('.delete-note-btn', card).addEventListener('click', () => {
+      card.querySelector('.delete-note-btn').addEventListener('click', () => {
         const id = card.dataset.id;
         const i = notes.findIndex(x => x.id === id);
         if (i === -1) return;
@@ -215,20 +226,15 @@
   function wireButtons() {
     const addBtn  = $('addNoteBtn');
     const saveBtn = $('saveNotesBtn');
-
     if (addBtn && !addBtn.__WIRED__) {
       addBtn.addEventListener('click', (e) => { e.preventDefault(); addNote(); });
       addBtn.__WIRED__ = true;
-      if (addBtn.tagName === 'A' && (addBtn.getAttribute('href') || '#') === '#') {
-        addBtn.setAttribute('href', 'javascript:void(0)');
-      }
+      if (addBtn.tagName === 'A' && (addBtn.getAttribute('href') || '#') === '#') addBtn.setAttribute('href','javascript:void(0)');
     }
     if (saveBtn && !saveBtn.__WIRED__) {
       saveBtn.addEventListener('click', (e) => { e.preventDefault(); saveAll(); });
       saveBtn.__WIRED__ = true;
-      if (saveBtn.tagName === 'A' && (saveBtn.getAttribute('href') || '#') === '#') {
-        saveBtn.setAttribute('href', 'javascript:void(0)');
-      }
+      if (saveBtn.tagName === 'A' && (saveBtn.getAttribute('href') || '#') === '#') saveBtn.setAttribute('href','javascript:void(0)');
     }
   }
 
@@ -244,7 +250,7 @@
     };
     onShow();
     const obs = new MutationObserver(onShow);
-    obs.observe(notesView, { attributes: true, childList: true, subtree: true });
+    obs.observe(notesView, { attributes: true, childList: true, subtree: false });
   }
 
   function start() {
@@ -259,11 +265,4 @@
   } else {
     start();
   }
-
-  // Debug helpers
-  window.NotesModule = {
-    add: addNote, render: renderNotes,
-    load: () => (notes = loadNotes(), renderNotes(), notes),
-    save: saveAll, filter: (m) => { filterMode = m; renderNotes(); }
-  };
 })();
