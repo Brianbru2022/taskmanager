@@ -146,3 +146,35 @@ body[data-theme="dark"] .note-card:hover {
 .notes-toolbar .notes-clear-archived:hover { filter: brightness(.9); }
 
 .notes-grid .empty-state { grid-column: 1 / -1; }
+
+/* === Professional toolbar overrides (appended by patch) =================== */
+.notes-toolbar--in-actions{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:.5rem;
+}
+.notes-toolbar .notes-filter,
+.notes-toolbar .notes-clear-archived{
+  appearance:none;
+  border:1px solid var(--color-border);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  padding:.5rem .75rem;
+  line-height:1;
+  font-size:.85rem;
+  font-weight:600;
+  border-radius:999px;
+  box-shadow:none;
+}
+.notes-toolbar .notes-filter.active{
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  color:#fff;
+}
+.notes-toolbar .notes-clear-archived{
+  background:transparent;
+  color: var(--color-accent-danger);
+  border-color: var(--color-accent-danger);
+}
+/* ========================================================================== */
