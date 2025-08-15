@@ -1,118 +1,142 @@
 /**
- * tasks-postfilter.js — v1.0
- * Non-invasive, DOM-level filtering & sorting that works alongside your current renderer.
- * - Applies Assignee + Category + Search together (cumulative) after each render.
- * - Re-sorts cards by Due Date based on the Sort select.
- * - Safe to include multiple times; idempotent wiring.
- * - Load AFTER script.js and any sanity/compat helpers.
+ * tasks-postfilter.js — v1.1
+ * DOM-level filtering & sorting that runs AFTER your renderer, without loops.
+ * - Prevents MutationObserver self-trigger loops via a reentrancy lock.
+ * - Applies Assignee + Category + Search together (cumulative).
+ * - Re-sorts visible cards by Due Date per the Sort select.
+ * - Idempotent wiring. Load AFTER script.js (+ any sanity/compat files).
  */
 (() => {
   const $  = (id) => document.getElementById(id);
-  const qa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const qa = (sel, root = document) => Array.from((root || document).querySelectorAll(sel));
 
-  // Parse DD/MM/YYYY into a Date (returns null if invalid)
+  // ---- Helpers ----
   function parseUKDate(text) {
     if (!text) return null;
     const m = String(text).trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
     if (!m) return null;
-    const [_, dd, mm, yyyy] = m;
-    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
-    return isNaN(d.getTime()) ? null : d;
+    const [, dd, mm, yyyy] = m;
+    const d = new Date(+yyyy, +mm - 1, +dd);
+    return isNaN(d) ? null : d;
   }
 
-  // Decide if a task card matches the active filters
-  function cardMatchesFilters(card, filters) {
-    const { assignee, category, q } = filters;
+  function getControls() {
+    const assignee = $('assigneeFilter')?.value || 'all';
+    const category = $('categoryFilter')?.value || 'all';
+    const sortBy   = $('sortBy')?.value || 'oldest';
+    const q        = ($('globalSearchInput')?.value || '').trim().toLowerCase();
+    return { assignee, category, sortBy, q };
+  }
 
-    // Category (label text inside .task-card-category-tag)
+  function cardMatchesFilters(card, { assignee, category, q }) {
+    // Category
     if (category && category !== 'all') {
-      const tag = card.querySelector('.task-card-category-tag');
-      const tagText = tag?.textContent?.trim() || '';
+      const tagText = card.querySelector('.task-card-category-tag')?.textContent?.trim() || '';
       if (tagText !== category) return false;
     }
-
-    // Assignee (any .card-assignee-icon title must match)
+    // Assignee (any icon title)
     if (assignee && assignee !== 'all') {
-      const icons = qa('.card-assignee-icon', card);
-      const titles = icons.map(i => i.getAttribute('title') || '');
+      const titles = qa('.card-assignee-icon', card).map(i => i.getAttribute('title') || '');
       if (!titles.includes(assignee)) return false;
     }
-
-    // Search (title + description text)
+    // Search (title + description)
     if (q) {
       const title = card.querySelector('.task-card-title span')?.textContent?.toLowerCase() || '';
       const desc  = card.querySelector('.task-card-description')?.textContent?.toLowerCase() || '';
       if (!title.includes(q) && !desc.includes(q)) return false;
     }
-
     return true;
   }
 
-  // Sort all task cards within a container by due date
-  function sortCardsByDueDate(container, dir = 'newest') {
-    const cards = qa('.task-card', container);
-    cards.sort((a, b) => {
-      const da = parseUKDate(a.querySelector('.task-card-due-date')?.textContent?.replace(/[^\d/]/g, ''));
-      const db = parseUKDate(b.querySelector('.task-card-due-date')?.textContent?.replace(/[^\d/]/g, ''));
-      const va = da ? da.getTime() : 0;
-      const vb = db ? db.getTime() : 0;
-      return dir === 'oldest' ? (va - vb) : (vb - va);
-    }).forEach(c => container.appendChild(c));
+  function sortVisibleCardsByDueDate(container, dir) {
+    const cards = qa('.task-card', container).filter(c => c.style.display !== 'none');
+    if (cards.length < 2) return;
+
+    // Build array with dates to avoid repeated DOM reads
+    const items = cards.map(c => {
+      const txt = c.querySelector('.task-card-due-date')?.textContent || '';
+      const dateStr = txt.replace(/[^\d/]/g, ''); // keep DD/MM/YYYY
+      const d = parseUKDate(dateStr);
+      return { node: c, ts: d ? d.getTime() : 0 };
+    });
+
+    items.sort((a, b) => (dir === 'oldest' ? a.ts - b.ts : b.ts - a.ts));
+
+    // Re-append only if order changed
+    let changed = false;
+    items.forEach(({ node }, idx) => {
+      if (container.children[idx] !== node) {
+        changed = true;
+        container.appendChild(node);
+      }
+    });
+    return changed;
   }
 
+  // ---- Core Post-Filter ----
+  let LOCK = false;
+
   function applyPostFilters() {
+    if (LOCK) return;
+
     const board = $('kanbanBoard');
     if (!board) return;
 
-    // Read current UI controls (IDs from your index.html)
-    const assignee = $('assigneeFilter')?.value || 'all';
-    const category = $('categoryFilter')?.value || 'all';
-    const sortBy   = $('sortBy')?.value || 'oldest';
-    const q        = ($('globalSearchInput')?.value || '').toLowerCase().trim();
+    const controls = getControls();
+    const anyFilterActive =
+      controls.assignee !== 'all' ||
+      controls.category !== 'all' ||
+      !!controls.q;
 
-    const filters = { assignee, category, q };
+    // Nothing to do? Still ensure counts match current visibility.
+    if (!anyFilterActive && controls.sortBy === 'oldest') {
+      updateCounts(board);
+      return;
+    }
 
-    // For each column, filter and sort its cards
-    qa('.kanban-column', board).forEach(col => {
-      const list = col.querySelector('.tasks-container');
-      if (!list) return;
+    LOCK = true; // prevent our own DOM edits from re-triggering loop
+    try {
+      qa('.kanban-column', board).forEach(col => {
+        const list = col.querySelector('.tasks-container');
+        if (!list) return;
 
-      // Hide/show by filters (assignee/category/search)
-      qa('.task-card', list).forEach(card => {
-        card.style.display = cardMatchesFilters(card, filters) ? '' : 'none';
+        // Filter visibility
+        qa('.task-card', list).forEach(card => {
+          const show = anyFilterActive ? cardMatchesFilters(card, controls) : true;
+          const cur  = card.style.display !== 'none';
+          if (show !== cur) card.style.display = show ? '' : 'none';
+        });
+
+        // Sort visible cards
+        sortVisibleCardsByDueDate(list, controls.sortBy);
       });
 
-      // Re-sort only the visible ones
-      sortCardsByDueDate(list, sortBy);
-    });
+      updateCounts(board);
+    } finally {
+      // Release on next tick to coalesce micro-mutations (icons, widths)
+      setTimeout(() => { LOCK = false; }, 0);
+    }
+  }
 
-    // Optional: update the counts in headers to reflect visible cards
+  function updateCounts(board) {
     qa('.kanban-column', board).forEach(col => {
       const countEl = col.querySelector('.column-header .task-count');
       if (!countEl) return;
       const visible = qa('.task-card', col).filter(c => c.style.display !== 'none').length;
-      countEl.textContent = visible;
+      if (countEl.textContent !== String(visible)) countEl.textContent = visible;
     });
   }
 
-  // Debounce small bursts of updates
-  const debounce = (fn, ms = 80) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
-  const applyDebounced = debounce(applyPostFilters, 50);
+  // ---- Wiring ----
+  const debounce = (fn, ms = 120) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+  const applyDebounced = debounce(applyPostFilters, 80);
 
   function wireControls() {
-    [
-      'assigneeFilter',
-      'categoryFilter',
-      'sortBy',
-      'closedFilter',         // not reimplemented here, but re-render triggers a refresh
-    ].forEach(id => {
+    const ids = ['assigneeFilter', 'categoryFilter', 'sortBy', 'closedFilter'];
+    ids.forEach(id => {
       const el = $(id);
       if (el && !el.__POSTFILTER__) {
-        el.addEventListener('change', () => {
-          // If upstream re-render runs, MutationObserver below will re-apply.
-          // Apply immediately as well for snappy UX.
-          applyDebounced();
-        });
+        el.addEventListener('change', applyDebounced);
         el.__POSTFILTER__ = true;
       }
     });
@@ -129,15 +153,18 @@
     if (!board || board.__POSTFILTER_OBS__) return;
     board.__POSTFILTER_OBS__ = true;
 
-    const obs = new MutationObserver(applyDebounced);
+    const obs = new MutationObserver(() => {
+      if (!LOCK) applyDebounced();
+    });
+    // Listen to structure changes; our LOCK prevents feedback loops
     obs.observe(board, { childList: true, subtree: true });
   }
 
   function start() {
     wireControls();
     observeBoard();
-    // First pass
-    applyPostFilters();
+    // First pass once your renderer paints the board
+    setTimeout(applyPostFilters, 0);
   }
 
   if (document.readyState === 'loading') {
