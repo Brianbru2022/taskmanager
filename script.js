@@ -1,8 +1,7 @@
 (() => {
     // --- STATE MANAGEMENT ---
-    let tasks = []; let categories = {}; let people = {}; let passwords = []; let websites = []; let activeAssigneeSelect = null; let expandedSubtasks = new Set();
+    let tasks = []; let categories = {}; let people = {}; let passwords = []; let websites = []; let activeAssigneeSelect = null;
     const KANBAN_STATUSES = ['Open', 'In Progress', 'Closed'];
-    const SUBTASK_COLORS = ['subtask-color-1', 'subtask-color-2', 'subtask-color-3', 'subtask-color-4', 'subtask-color-5'];
     let currentEditingTask = null;
     let currentLinkTask = null;
 
@@ -12,49 +11,52 @@ JSON.stringify(passwords)); localStorage.setItem('websites', JSON.stringify(webs
     const generateRandomColor = () => `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`;
     const getInitials = (name) => (name || '').split(' ').map(n => n[0]).join('').toUpperCase();
     const getNextId = (prefix = 'TASK') => `${prefix}-${Date.now()}`;
-const formatDate = (isoDate) => isoDate ? new Date(isoDate).toLocaleString('en-GB') : 'N/A';
+    const formatDate = (isoDate) => isoDate ? new Date(isoDate).toLocaleString('en-GB') : 'N/A';
     const formatDateForDisplay = (isoDate) => isoDate ?
 new Date(isoDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A';
     const renderAndPopulate = () => { renderKanbanBoard(); populateAllDropdowns();
 };
     const addWeekdays = (date, days) => {
         let newDate = new Date(date);
-let addedDays = 0;
+        let addedDays = 0;
         while (addedDays < days) {
             newDate.setDate(newDate.getDate() + 1);
-const dayOfWeek = newDate.getDay();
+            const dayOfWeek = newDate.getDay();
             if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0 = Sunday, 6 = Saturday
                 addedDays++;
-}
+            }
         }
         return newDate;
     };
-const showToast = (message) => {
+    const showToast = (message) => {
         const toast = get('copy-toast');
         toast.textContent = message;
-toast.classList.add('show');
+        toast.classList.add('show');
         setTimeout(() => {
             toast.classList.remove('show');
         }, 2000);
-};
+    };
 
     // --- DOM ELEMENT SELECTION ---
     const get = (id) => document.getElementById(id);
-const queryAll = (selector) => document.querySelectorAll(selector);
-    const kanbanBoard = get('kanbanBoard'), openNewTaskModalBtn = get('openNewTaskModalBtn'), assigneeFilter = get('assigneeFilter'), categoryFilter = get('categoryFilter'), sortBySelect = (get('sortBy') || get('sortBySelect')), closedFilterSelect = (get('closedFilter') || get('closedFilterSelect')), taskModal = get('taskModal'), taskForm = get('taskForm'), modalTitle = get('modalTitle'), manageTaskHeader = get('manageTaskHeader'), taskNameInput = get('taskName'), taskDescriptionInput = get('taskDescription'), dueDateInput = get('dueDate'), taskUrgentInput = get('taskUrgent'), taskAssigneeSelect = get('taskAssignee'), categorySelect = get('categorySelect'), taskStatusSelect = get('taskStatus'), taskProgressInput = get('taskProgress'), progressContainer = get('progress-container'), deleteTaskBtn = get('deleteTaskBtn'), archiveTaskBtn = get('archiveTaskBtn'), addNewCategoryBtn = get('addNewCategoryBtn'), categoryModal = get('categoryModal'), categoryForm = get('categoryForm'), newCategoryNameInput = get('newCategoryName'), addNewPersonBtn = get('addNewPersonBtn'), personModal = get('personModal'), personForm = get('personForm'), newPersonNameInput = get('newPersonName'), subTaskSection = get('subTaskSection'), subtasksListContainer = get('subtasksListContainer'),
-addSubTaskFormContainer = get('addSubTaskFormContainer'), mainLogControls = get('mainLogControls'), logSummarySection = get('logSummarySection'), logSummaryContainer = get('logSummaryContainer'), reportsLink = get('reportsLink'), settingsBtn = get('settingsBtn'), settingsModal = get('settingsModal'), peopleList = get('peopleList'), categoryList = get('categoryList'), settingsPersonForm = get('settingsPersonForm'), settingsCategoryForm = get('settingsCategoryForm'), settingsPersonNameInput = get('settingsPersonName'), settingsCategoryNameInput = get('settingsCategoryName'), passwordList = get('passwordList'), settingsPasswordForm = get('settingsPasswordForm'), settingsPasswordServiceInput = get('settingsPasswordService'), settingsPasswordUsernameInput = get('settingsPasswordUsername'), settingsPasswordValueInput = get('settingsPasswordValue'), openPasswordModalBtn = get('openPasswordModalBtn'), passwordModal = get('passwordModal'), passwordModalTitle = get('passwordModalTitle'), passwordIdInput = get('passwordId'), settingsPasswordLinkInput = get('settingsPasswordLink'), linkModal = get('linkModal'), linkForm = get('linkForm'), linkNameInput = get('linkName'), linkUrlInput
+    const queryAll = (selector) => document.querySelectorAll(selector);
+    const kanbanBoard = get('kanbanBoard'), openNewTaskModalBtn = get('openNewTaskModalBtn'), assigneeFilter = get('assigneeFilter'), categoryFilter = get('categoryFilter'), sortBySelect = (get('sortBy') || get('sortBySelect')), closedFilterSelect = get('closedFilter') || get('closedFilterSelect'), taskModal = get('taskModal'), taskForm = get('taskForm'), modalTitle = get('modalTitle'), manageTaskHeader = get('manageTaskHeader'), taskNameInput = get('taskName'), taskDescriptionInput = get('taskDescription'), dueDateInput = get('dueDate'), taskUrgentInput = get('taskUrgent'), taskAssigneeSelect = get('taskAssignee'), categorySelect = get('categorySelect'), taskStatusSelect = get('taskStatus'), taskProgressInput = get('taskProgress'), progressContainer = get('progress-container'), deleteTaskBtn = get('deleteTaskBtn'), archiveTaskBtn = get('archiveTaskBtn'), addNewCategoryBtn = get('addNewCategoryBtn'), categoryModal = get('categoryModal'), categoryForm = get('categoryForm'), newCategoryNameInput = get('newCategoryName'), addNewPersonBtn = get('addNewPersonBtn'), personModal = get('personModal'), personForm = get('personForm'), newPersonNameInput = get('newPersonName'), subTaskSection = get('subTaskSection'), subtasksListContainer = get('subtasksListContainer'),
+    mainLogControls = get('mainLogControls'), logSummarySection = get('logSummarySection'), logSummaryContainer = get('logSummaryContainer'), reportsLink = get('reportsLink'), settingsBtn = get('settingsBtn'), settingsModal = get('settingsModal'), peopleList = get('peopleList'), categoryList = get('categoryList'), settingsPersonForm = get('settingsPersonForm'), settingsCategoryForm = get('settingsCategoryForm'), settingsPersonNameInput = get('settingsPersonName'), settingsCategoryNameInput = get('settingsCategoryName'), passwordList = get('passwordList'), settingsPasswordForm = get('settingsPasswordForm'), settingsPasswordServiceInput = get('settingsPasswordService'), settingsPasswordUsernameInput = get('settingsPasswordUsername'), settingsPasswordValueInput = get('settingsPasswordValue'), openPasswordModalBtn = get('openPasswordModalBtn'), passwordModal = get('passwordModal'), passwordModalTitle = get('passwordModalTitle'), passwordIdInput = get('passwordId'), settingsPasswordLinkInput = get('settingsPasswordLink'), linkModal = get('linkModal'), linkForm = get('linkForm'), linkNameInput = get('linkName'), linkUrlInput
 = get('linkUrl'), existingLinksList = get('existingLinksList'), websiteList = get('websiteList'), openWebsiteModalBtn = get('openWebsiteModalBtn'), websiteModal = get('websiteModal'), globalSearchInput = get('globalSearchInput');
 
     // --- DATA SANITIZATION & INITIAL LOAD ---
     const sanitizeTask = (task) => { const defaults = { name: 'Untitled', description: '', dueDate: new Date().toISOString().split('T')[0], assignee: null, category: 'Uncategorized', status: 'Open', subtasks: [], log: [], isArchived: false, isUrgent: false, closedDate: null, progress: null, links: [], archivedDate: null };
-const sanitized = { ...defaults, ...task }; sanitized.subtasks = (sanitized.subtasks || []).map(sub => ({...defaults, ...sub})); return sanitized; };
-const sanitizePassword = (p) => ({ id: getNextId('PWD'), service: 'Untitled', username: '', value: '', link: '', ...p });
+        const sanitized = { ...defaults, ...task };
+        sanitized.subtasks = (sanitized.subtasks || []).map(sub => ({...defaults, ...sub, subtasks: []})); // Enforce flat structure
+        return sanitized;
+    };
+    const sanitizePassword = (p) => ({ id: getNextId('PWD'), service: 'Untitled', username: '', value: '', link: '', ...p });
     const sanitizeWebsite = (w) => ({ id: getNextId('WEB'), service: 'Untitled', username: '', value: '', link: '', ...w });
-const loadData = () => { try { tasks = (JSON.parse(localStorage.getItem('tasks')) || []).map(sanitizeTask); categories = JSON.parse(localStorage.getItem('categories')) || {};
+    const loadData = () => { try { tasks = (JSON.parse(localStorage.getItem('tasks')) || []).map(sanitizeTask); categories = JSON.parse(localStorage.getItem('categories')) || {};
 people = JSON.parse(localStorage.getItem('people')) || {}; passwords = (JSON.parse(localStorage.getItem('passwords')) || []).map(sanitizePassword);
         websites = (JSON.parse(localStorage.getItem('websites')) || []).map(sanitizeWebsite);
 } catch (error) { console.error("Failed to load data, starting fresh.", error); localStorage.clear(); } };
-const addSampleData = () => { if (tasks.length > 0 || Object.keys(people).length > 0) return;
+    const addSampleData = () => { if (tasks.length > 0 || Object.keys(people).length > 0) return;
 people = { 'Alice Johnson': '#0d6efd', 'Bob Smith': '#dc3545', 'Charlie Brown': '#ffc107', 'Diana Prince': '#6f42c1' };
 categories = { 'Design': '#20c997', 'Backend': '#fd7e14', 'DevOps': '#6610f2', 'Frontend': '#0dcaf0' };
 const sampleTasks = [ { id: 'TASK-1', name: 'Design Homepage Mockups', description: 'Create high-fidelity mockups for the new homepage in Figma.', dueDate: '2025-08-20', assignee: 'Alice Johnson', category: 'Design', status: 'In Progress', isUrgent: true, progress: 75, links: [{name: "Figma Mockup", url: "https://figma.com"}] }, { id: 'TASK-2', name: 'Setup Production Server', description: 'Configure AWS EC2 instance and RDS for production deployment.', dueDate: new Date().toISOString().split('T')[0], assignee: 'Diana Prince', category: 'DevOps', status: 'Open', subtasks: [ { id: 'SUB-1', name: 'Install Nginx', description: 'Set up the web server.', assignee: 'Diana Prince', dueDate: new Date().toISOString().split('T')[0], status: 'Open', links: [] } ], links: [] }, { id:
@@ -66,7 +68,7 @@ tasks = sampleTasks.map(sanitizeTask); saveState(); };
 setTimeout(() => e.target.classList.add('dragging'), 0); };
     const handleDragEnd = (e) => e.target.classList.remove('dragging');
     const handleDragOver = (e) => { e.preventDefault(); e.currentTarget.classList.add('drag-over'); };
-const handleDragLeave = (e) => e.currentTarget.classList.remove('drag-over');
+    const handleDragLeave = (e) => e.currentTarget.classList.remove('drag-over');
     const handleDrop = (e) => {
         e.preventDefault();
 e.currentTarget.classList.remove('drag-over');
@@ -174,59 +176,53 @@ const tasksContainerToday = column.querySelector('.tasks-container');
         }
         kanbanBoard.appendChild(weekColumn);
     };
-const createTaskCard = (task, isDraggable = true) => {
+    const createTaskCard = (task, isDraggable = true) => {
         const card = document.createElement('div');
-const today = new Date();
+        const today = new Date();
         today.setHours(0,0,0,0);
         const isLate = new Date(task.dueDate) < today && !['Closed'].includes(task.status);
-        card.className = `task-card ${isLate ?
-'late' : ''}`;
+        card.className = `task-card ${isLate ? 'late' : ''}`;
         card.dataset.id = task.id;
         card.draggable = isDraggable;
         card.style.setProperty('--card-category-color', categories[task.category] || 'transparent');
         const allAssignees = Array.from(getAllAssignees(task));
-const assigneeStackHTML = allAssignees.map(p => `<div class="card-assignee-icon" style="background-color: ${people[p] || '#ccc'}" title="${p}">${getInitials(p)}</div>`).join('');
-        const urgentIconHTML = task.isUrgent ?
-'<i class="fas fa-exclamation-circle urgent-icon" title="Urgent"></i>' : '';
+        const assigneeStackHTML = allAssignees.map(p => `<div class="card-assignee-icon" style="background-color: ${people[p] || '#ccc'}" title="${p}">${getInitials(p)}</div>`).join('');
+        const urgentIconHTML = task.isUrgent ? '<i class="fas fa-exclamation-circle urgent-icon" title="Urgent"></i>' : '';
         const quickCloseBtnHTML = task.status !== 'Closed' ? `<button class="task-card-quick-close" data-task-id="${task.id}" title="Mark as Closed"><i class="fas fa-check-circle"></i></button>` : '';
         
         let displayProgress = 0;
-if (typeof task.progress === 'number') {
+        if (typeof task.progress === 'number') {
             displayProgress = task.progress;
-} else {
+        } else {
             if (task.status === 'In Progress') displayProgress = 50;
-else if (task.status === 'Closed') displayProgress = 100;
+            else if (task.status === 'Closed') displayProgress = 100;
         }
 
-        const progressBarHTML = `
-            <div class="progress-bar-container">
-                <div class="progress-bar" style="width: ${displayProgress}%;"></div>
-            </div>
-        `;
-card.innerHTML = `
+        const progressBarHTML = `<div class="progress-bar-container"><div class="progress-bar" style="width: ${displayProgress}%;"></div></div>`;
+
+        card.innerHTML = `
             ${quickCloseBtnHTML}
             ${urgentIconHTML}
-            ${isLate ?
-'<div class="overdue-label">Overdue</div>' : ''}
+            ${isLate ? '<div class="overdue-label">Overdue</div>' : ''}
             <h4 class="task-card-title">
                 <span>${task.name}</span>
                 <div class="title-assignee-stack">${assigneeStackHTML}</div>
             </h4>
-            <p class="task-card-description">${task.description ||
-''}</p>
+            <p class="task-card-description">${task.description || ''}</p>
             <div class="task-card-footer">
                 <span class="task-card-due-date"><i class="far fa-calendar-alt"></i>&nbsp;${formatDateForDisplay(task.dueDate)}</span>
                 <span class="task-card-category-tag" style="background-color: ${categories[task.category] || '#ccc'}">${task.category}</span>
             </div>
             ${progressBarHTML}
-            `;
-card.addEventListener('click', (e) => {
+        `;
+
+        card.addEventListener('click', (e) => {
             if (e.target.closest('.task-card-quick-close')) return;
             openTaskModal(task.id)
         });
         if (isDraggable) {
             card.addEventListener('dragstart', handleDragStart);
-card.addEventListener('dragend', handleDragEnd);
+            card.addEventListener('dragend', handleDragEnd);
         }
 
         const quickCloseBtn = card.querySelector('.task-card-quick-close');
@@ -244,108 +240,135 @@ card.addEventListener('dragend', handleDragEnd);
         }
         return card;
     };
-const renderSubTask = (taskObject, level = 0) => {
-        
-        const container = document.createElement('div');
-const colorClass = SUBTASK_COLORS[level % SUBTASK_COLORS.length];
-        const isClosed = taskObject.status === 'Closed';
-        container.className = `sub-task-container ${colorClass} ${isClosed ? 'is-closed' : ''}`;
 
-        const header = document.createElement('div');
-        const isExpanded = expandedSubtasks.has(taskObject.id);
-header.className = `sub-task-header ${isExpanded ? '' : 'collapsed'} ${isClosed ? 'is-closed' : ''}`;
-        const assigneeIcon = `<div class="card-assignee-icon sub-task-assignee-icon" style="background-color: ${people[taskObject.assignee] || '#ccc'}" title="${taskObject.assignee}">${getInitials(taskObject.assignee)}</div>`;
-const statusDropdownHTML = `<select class="sub-task-status" data-task-id="${taskObject.id}">${KANBAN_STATUSES.map(s => `<option value="${s}" ${taskObject.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>`;
-const quickCloseBtnHTML = `<button class="sub-task-quick-close" data-task-id="${taskObject.id}" title="Mark as Closed"><i class="fas fa-check-circle"></i></button>`;
+    const renderSubTasks = (task) => {
+        subtasksListContainer.innerHTML = ''; // Clear previous content
 
-        header.innerHTML = `<span class="sub-task-toggle"><i class="fas fa-chevron-down"></i></span><span class="sub-task-title">${taskObject.name}</span>${assigneeIcon}<span><strong>Due:</strong> ${formatDateForDisplay(taskObject.dueDate)}</span>${statusDropdownHTML}${quickCloseBtnHTML}`;
-const body = document.createElement('div');
-        body.className = `sub-task-body ${isExpanded ? '' : 'collapsed'}`;
-        
-        const linksSection = document.createElement('div');
-        linksSection.className = 'links-section';
-linksSection.innerHTML = `<h4>Links <button type="button" class="add-link-btn-header" data-task-id="${taskObject.id}" title="Add Link"><i class="fas fa-link"></i></button></h4>`;
-        const linksList = document.createElement('ul');
-        linksList.className = 'links-list';
-(taskObject.links || []).forEach(link => {
-            const li = document.createElement('li');
-            li.innerHTML = `<a href="${link.url}" target="_blank">${link.name}</a>`;
-            linksList.appendChild(li);
-        });
-linksSection.appendChild(linksList);
+        const subtasks = task.subtasks || [];
+        if (subtasks.length === 0) {
+            subtasksListContainer.innerHTML = `<div class="empty-state" style="padding: 1rem 0;"><p>No sub-tasks yet.</p></div>`;
+            return;
+        }
 
-        body.innerHTML = `<p class="sub-task-description">${taskObject.description || 'No description.'}</p>`;
-        body.appendChild(linksSection);
-        body.appendChild(createLogControls(taskObject));
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'sub-task-table-container';
+        const table = document.createElement('table');
+        table.className = 'sub-task-table';
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>Task Name</th>
+                    <th>Assignee</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        `;
 
-        const nestedSubtasksContainer = document.createElement('div');
-        nestedSubtasksContainer.className = 'sub-tasks-nested';
-(taskObject.subtasks || []).forEach((sub, index) => nestedSubtasksContainer.appendChild(renderSubTask(sub, level + 1 + index)));
-        body.appendChild(nestedSubtasksContainer);
-        body.appendChild(createSubtaskForm(taskObject));
-        container.append(header, body);
-header.addEventListener('click', (e) => { if (e.target.closest('button,select,input')) return; isExpanded ? expandedSubtasks.delete(taskObject.id) : expandedSubtasks.add(taskObject.id); header.classList.toggle('collapsed'); body.classList.toggle('collapsed'); });
-const handleSubtaskClose = (subTaskId) => {
-            const subTask = findTaskById(subTaskId);
-if (subTask && subTask.status !== 'Closed') {
-                subTask.status = 'Closed';
-subTask.closedDate = new Date().toISOString();
-                logAction(currentEditingTask, `Sub-task "${subTask.name}" marked as completed.`, subTask.assignee);
-                updateMainTaskDueDate(currentEditingTask);
-                saveState();
-                openTaskModal(currentEditingTask.id);
-}
-        };
+        const tbody = table.querySelector('tbody');
+        subtasks.forEach(sub => {
+            const row = document.createElement('tr');
+            row.dataset.id = sub.id;
+            const assigneeIcon = `<div class="card-assignee-icon" style="background-color: ${people[sub.assignee] || '#ccc'}" title="${sub.assignee}">${getInitials(sub.assignee)}</div>`;
+            const statusDropdownHTML = `<select class="sub-task-status" data-task-id="${sub.id}">${KANBAN_STATUSES.map(s => `<option value="${s}" ${sub.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>`;
+            const linksHTML = (sub.links && sub.links.length > 0) ? ` <button type="button" class="add-link-btn-header" data-task-id="${sub.id}" title="View Links"><i class="fas fa-link"></i></button>` : '';
 
-        header.querySelector('.sub-task-status').addEventListener('change', (e) => {
-            const subTask = findTaskById(e.target.dataset.taskId);
-            if (subTask) {
-                subTask.status = e.target.value;
-                if (subTask.status === 'Closed') {
-                    handleSubtaskClose(subTask.id);
- 
-               }
+            row.innerHTML = `
+                <td>${sub.name}${linksHTML}</td>
+                <td>${assigneeIcon}</td>
+                <td>${formatDateForDisplay(sub.dueDate)}</td>
+                <td>${statusDropdownHTML}</td>
+                <td>
+                    <button class="settings-delete-btn delete-subtask-btn" data-task-id="${sub.id}" title="Delete Sub-task">&times;</button>
+                </td>
+            `;
+
+            row.querySelector('.sub-task-status').addEventListener('change', (e) => {
+                const subTask = findTaskById(e.target.dataset.taskId);
+                if (subTask) {
+                    subTask.status = e.target.value;
+                    if (subTask.status === 'Closed') {
+                        subTask.closedDate = new Date().toISOString();
+                        logAction(currentEditingTask, `Sub-task "${subTask.name}" marked as completed.`, subTask.assignee);
+                        updateMainTaskDueDate(currentEditingTask);
+                    }
+                    saveState();
+                    openTaskModal(currentEditingTask.id);
+                }
+            });
+
+            row.querySelector('.delete-subtask-btn').addEventListener('click', (e) => {
+                const subTaskId = e.currentTarget.dataset.taskId;
+                if (confirm('Are you sure you want to delete this sub-task?')) {
+                    currentEditingTask.subtasks = currentEditingTask.subtasks.filter(st => st.id !== subTaskId);
+                    saveState();
+                    openTaskModal(currentEditingTask.id);
+                }
+            });
+
+            const linkBtn = row.querySelector('.add-link-btn-header');
+            if (linkBtn) {
+                linkBtn.addEventListener('click', (e) => {
+                    openLinkModal(e.currentTarget.dataset.taskId);
+                });
             }
+
+            tbody.appendChild(row);
         });
-header.querySelector('.sub-task-quick-close').addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent header click from toggling expand/collapse
-            handleSubtaskClose(e.currentTarget.dataset.taskId);
-        });
-body.querySelector('.add-link-btn-header').addEventListener('click', (e) => {
-            openLinkModal(e.currentTarget.dataset.taskId);
-        });
-return container;
+
+        tableContainer.appendChild(table);
+        subtasksListContainer.appendChild(tableContainer);
+    };
+
+    const renderAddSubtaskForm = () => {
+        const formContainer = get('addSubTaskFormContainer');
+        formContainer.innerHTML = `
+            <table class="sub-task-table">
+                <tbody class="add-subtask-row">
+                    <tr>
+                        <td><input type="text" id="newSubtaskName" placeholder="New sub-task title..." required></td>
+                        <td>
+                            <div class="input-with-button">
+                                <select id="newSubtaskAssignee" required></select>
+                                <button type="button" id="addNewPersonBtnSubtask" class="add-icon-btn" title="Add New Person"><i class="fas fa-user-plus"></i></button>
+                            </div>
+                        </td>
+                        <td><input type="date" id="newSubtaskDueDate" required></td>
+                        <td><button type="button" id="addSubtaskBtn" class="btn btn-primary"><i class="fas fa-plus"></i> Add</button></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+
+        const select = get('newSubtaskAssignee');
+        select.innerHTML = `<option value="" disabled selected>Assign...</option>` + Object.keys(people).sort().map(p => `<option value="${p}">${p}</option>`).join('');
+        
+        get('addNewPersonBtnSubtask').addEventListener('click', () => { activeAssigneeSelect = select; openModal(personModal); });
+        get('addSubtaskBtn').addEventListener('click', handleAddSubTask);
     };
 
     const createLogControls = (taskObject) => {
         const div = document.createElement('div');
-div.className = 'log-controls';
+        div.className = 'log-controls';
         div.innerHTML = `<h4>Action Log</h4><div class="log-controls-wrapper"><div class="update-controls"><input type="text" placeholder="Add manual update..." class="manual-update-input"><button type="button" class="btn btn-primary add-update-btn"><i class="fas fa-comment-dots"></i> Log</button></div><div class="chaser-controls"><small>Log Chaser:</small><button type="button" class="btn btn-chaser" data-log="Email chaser sent">Email</button><button type="button" class="btn btn-chaser" data-log="Letter chaser sent">Letter</button><button type="button" class="btn btn-chaser" data-log="Chased at meeting">Meeting</button></div></div>`;
-div.querySelector('.add-update-btn').addEventListener('click', () => { const input = div.querySelector('.manual-update-input'); if (input.value.trim()) { logAction(taskObject, input.value.trim(), taskObject.assignee); input.value = ''; openTaskModal(currentEditingTask.id); } });
-div.querySelectorAll('.btn-chaser').forEach(btn => btn.addEventListener('click', (e) => {logAction(taskObject, e.target.dataset.log, taskObject.assignee); openTaskModal(currentEditingTask.id);}));
+        div.querySelector('.add-update-btn').addEventListener('click', () => { const input = div.querySelector('.manual-update-input'); if (input.value.trim()) { logAction(taskObject, input.value.trim(), taskObject.assignee); input.value = ''; openTaskModal(currentEditingTask.id); } });
+        div.querySelectorAll('.btn-chaser').forEach(btn => btn.addEventListener('click', (e) => {logAction(taskObject, e.target.dataset.log, taskObject.assignee); openTaskModal(currentEditingTask.id);}));
         return div;
-    };
-const createSubtaskForm = (parentTask) => {
-        const form = document.createElement('div');
-        form.className = 'add-subtask-form';
-form.innerHTML = `<h4>Add New Sub-Task</h4><input type="text" placeholder="Sub-task title..." class="new-subtask-name"><textarea placeholder="Sub-task description..." rows="2" class="new-subtask-description"></textarea><div class="input-with-button"><select class="new-subtask-assignee"><option value="" disabled selected>Select Assignee...</option></select><button type="button" class="add-icon-btn add-person-btn-subtask" title="Add New Person"><i class="fas fa-user-plus"></i></button></div><input type="date" class="new-subtask-due-date"><button type="button" class="btn btn-primary add-subtask-btn"><i class="fas fa-plus"></i> Add Sub-Task</button>`;
-const select = form.querySelector('.new-subtask-assignee');
-        select.innerHTML += Object.keys(people).sort().map(p => `<option value="${p}">${p}</option>`).join('');
-        form.querySelector('.add-person-btn-subtask').addEventListener('click', () => { activeAssigneeSelect = select; openModal(personModal); });
-form.querySelector('.add-subtask-btn').addEventListener('click', () => handleAddSubTask(form, parentTask));
-        return form;
     };
 
     const renderLogSummary = (task) => {
         let allLogs = [];
-(function collectLogs(t) {
+        (function collectLogs(t) {
             if (t.log) allLogs.push(...t.log.map(l => ({ ...l, taskName: t.name })));
             if (t.subtasks) t.subtasks.forEach(collectLogs);
         })(task);
-allLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        allLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         logSummaryContainer.innerHTML = '';
-if (allLogs.length === 0) { logSummaryContainer.innerHTML = 'No actions logged.'; return;
-}
+        if (allLogs.length === 0) { logSummaryContainer.innerHTML = 'No actions logged.'; return;
+        }
         allLogs.forEach(log => {
             const entry = document.createElement('div');
             entry.className = 'log-entry';
@@ -353,130 +376,134 @@ if (allLogs.length === 0) { logSummaryContainer.innerHTML = 'No actions logged.'
             entry.innerHTML = `<div>${assigneeIcon}</div><div><span class="timestamp">[${formatDate(log.timestamp)}]</span><span class="log-task-tag">${log.taskName}</span> ${log.message}</div>`;
             logSummaryContainer.appendChild(entry);
         });
-};
+    };
 
     const findTaskById = (id, taskArray = tasks) => { for (const task of taskArray) { if (task.id === id) return task;
 if (task.subtasks) { const found = findTaskById(id, task.subtasks); if (found) return found; } } return null; };
-const getAllAssignees = (task) => { const assignees = new Set(); if (task.assignee) assignees.add(task.assignee);
-(function traverse(subtasks) { (subtasks || []).forEach(st => { if (st.assignee) assignees.add(st.assignee); traverse(st.subtasks); }); })(task.subtasks); return assignees; };
-const handleAddSubTask = (form, parentTask) => {
-        const name = form.querySelector('.new-subtask-name').value.trim(), description = form.querySelector('.new-subtask-description').value.trim(), assignee = form.querySelector('.new-subtask-assignee').value, dueDate = form.querySelector('.new-subtask-due-date').value;
-if (!name || !assignee || !dueDate) return alert('Please provide a title, assignee, and due date for the sub-task.');
-if (!parentTask.subtasks) parentTask.subtasks = [];
-        const newSubtask = { id: getNextId('SUB'), name, description, assignee, dueDate, status: 'Open', subtasks: [], log: [], closedDate: null, progress: null, links: [] };
-parentTask.subtasks.push(newSubtask);
-        logAction(parentTask, `Sub-task "${name}" was added.`, assignee);
-        updateMainTaskDueDate(parentTask);
-        expandedSubtasks.add(parentTask.id);
+    const getAllAssignees = (task) => { const assignees = new Set(); if (task.assignee) assignees.add(task.assignee);
+        (task.subtasks || []).forEach(st => { if (st.assignee) assignees.add(st.assignee); }); // No longer recursive
+        return assignees;
+    };
+
+    const handleAddSubTask = () => {
+        const nameInput = get('newSubtaskName');
+        const assigneeInput = get('newSubtaskAssignee');
+        const dueDateInput = get('newSubtaskDueDate');
+        
+        const name = nameInput.value.trim();
+        const assignee = assigneeInput.value;
+        const dueDate = dueDateInput.value;
+
+        if (!name || !assignee || !dueDate) return alert('Please provide a title, assignee, and due date for the sub-task.');
+
+        if (!currentEditingTask.subtasks) currentEditingTask.subtasks = [];
+        const newSubtask = { id: getNextId('SUB'), name, description: '', assignee, dueDate, status: 'Open', subtasks: [], log: [], closedDate: null, progress: null, links: [] };
+        currentEditingTask.subtasks.push(newSubtask);
+        logAction(currentEditingTask, `Sub-task "${name}" was added.`, assignee);
+        updateMainTaskDueDate(currentEditingTask);
         saveState();
         openTaskModal(currentEditingTask.id);
     };
-const logAction = (taskObject, message, assignee) => {
+
+    const logAction = (taskObject, message, assignee) => {
         if (!taskObject.log) taskObject.log = [];
-const logAssignee = assignee || taskObject.assignee;
+        const logAssignee = assignee || taskObject.assignee;
         taskObject.log.unshift({ timestamp: new Date().toISOString(), message, assignee: logAssignee });
     };
-const openTaskModal = (taskId = null) => {
+
+    const openTaskModal = (taskId = null) => {
         taskForm.reset();
         currentEditingTask = null;
-if (!taskId) expandedSubtasks.clear();
         [subTaskSection, mainLogControls, logSummarySection, deleteTaskBtn, archiveTaskBtn, manageTaskHeader, progressContainer].forEach(el => el.style.display = 'none');
         populateAllDropdowns();
-if (taskId) {
+        if (taskId) {
             const task = findTaskById(taskId);
-if (!task) return;
+            if (!task) return;
             currentEditingTask = task;
-            if(!expandedSubtasks.has(task.id)) expandedSubtasks.add(task.id);
             modalTitle.textContent = 'Manage Task';
             manageTaskHeader.style.display = 'flex';
-manageTaskHeader.innerHTML = `<h4>${task.name}</h4><div class="header-assignee"><div class="card-assignee-icon" style="background-color: ${people[task.assignee] || '#ccc'}" title="${task.assignee}">${getInitials(task.assignee)}</div><span>${task.assignee || 'Unassigned'}</span></div>`;
+            manageTaskHeader.innerHTML = `<h4>${task.name}</h4><div class="header-assignee"><div class="card-assignee-icon" style="background-color: ${people[task.assignee] || '#ccc'}" title="${task.assignee}">${getInitials(task.assignee)}</div><span>${task.assignee || 'Unassigned'}</span></div>`;
             taskNameInput.value = task.name;
             taskDescriptionInput.value = task.description;
-dueDateInput.value = task.dueDate;
+            dueDateInput.value = task.dueDate;
             taskUrgentInput.checked = task.isUrgent;
             taskAssigneeSelect.value = task.assignee;
             categorySelect.value = task.category;
             taskStatusSelect.value = task.status;
             
             get('mainTaskLinksList').innerHTML = '';
-(task.links || []).forEach(link => {
+            (task.links || []).forEach(link => {
                 const li = document.createElement('li');
                 li.innerHTML = `<a href="${link.url}" target="_blank">${link.name}</a>`;
                 get('mainTaskLinksList').appendChild(li);
             });
-if (task.status === 'In Progress') {
+            if (task.status === 'In Progress') {
                 progressContainer.style.display = 'block';
-taskProgressInput.value = task.progress || '';
+                taskProgressInput.value = task.progress || '';
             }
 
             [deleteTaskBtn, archiveTaskBtn, subTaskSection, mainLogControls, logSummarySection].forEach(el => el.style.display = 'block');
-subtasksListContainer.innerHTML = '';
-            (task.subtasks || []).forEach((sub, index) => subtasksListContainer.appendChild(renderSubTask(sub, index)));
-            addSubTaskFormContainer.innerHTML = '';
-            addSubTaskFormContainer.appendChild(createSubtaskForm(task));
+            renderSubTasks(task);
+            renderAddSubtaskForm();
             mainLogControls.innerHTML = '';
             mainLogControls.appendChild(createLogControls(task));
             renderLogSummary(task);
-} else {
+        } else {
             modalTitle.textContent = 'New Task';
-taskUrgentInput.checked = false;
+            taskUrgentInput.checked = false;
         }
         setTimeout(() => taskDescriptionInput.dispatchEvent(new Event('input')), 50);
         openModal(taskModal);
     };
-const updateMainTaskDueDate = (task) => {
+
+    const updateMainTaskDueDate = (task) => {
         if (task.isUrgent || !task.subtasks || task.subtasks.length === 0) {
             return;
-}
-
-        let allSubtasks = [];
-(function collectSubtasks(subtasks) {
-            for (const sub of subtasks) {
-                allSubtasks.push(sub);
-                if (sub.subtasks && sub.subtasks.length > 0) {
-                    collectSubtasks(sub.subtasks);
-                }
-       
-     }
-        })(task.subtasks);
-
+        }
+        const allSubtasks = task.subtasks; // Already flat
         const today = new Date();
-today.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
 
         const overdueSubtask = allSubtasks.find(st =>
             new Date(st.dueDate) < today && !['Closed'].includes(st.status)
         );
-if (overdueSubtask) {
+        if (overdueSubtask) {
             const newDueDate = addWeekdays(new Date(), 5);
-task.dueDate = newDueDate.toISOString().split('T')[0];
+            task.dueDate = newDueDate.toISOString().split('T')[0];
             return;
         }
 
         const incompleteSubtasks = allSubtasks.filter(st => !['Closed'].includes(st.status));
-if (incompleteSubtasks.length > 0) {
+        if (incompleteSubtasks.length > 0) {
             const latestDueDate = new Date(Math.max(...incompleteSubtasks.map(st => new Date(st.dueDate))));
-latestDueDate.setDate(latestDueDate.getDate() + 5);
+            latestDueDate.setDate(latestDueDate.getDate() + 5);
             task.dueDate = latestDueDate.toISOString().split('T')[0];
         }
     };
-const populateAllDropdowns = () => {
+
+    const populateAllDropdowns = () => {
         const sortedPeople = Object.keys(people).sort(), sortedCategories = Object.keys(categories).sort();
-const peopleOptions = sortedPeople.map(p => `<option value="${p}">${p}</option>`).join('');
+        const peopleOptions = sortedPeople.map(p => `<option value="${p}">${p}</option>`).join('');
         const categoryOptions = sortedCategories.map(c => `<option value="${c}">${c}</option>`).join('');
-assigneeFilter.innerHTML = '<option value="all">All Assignees</option>' + peopleOptions;
+        assigneeFilter.innerHTML = '<option value="all">All Assignees</option>' + peopleOptions;
         categoryFilter.innerHTML = '<option value="all">All Categories</option>' + categoryOptions;
-const currentAssignee = taskAssigneeSelect.value, currentCategory = categorySelect.value;
+        const currentAssignee = taskAssigneeSelect.value, currentCategory = categorySelect.value;
         taskAssigneeSelect.innerHTML = '<option value="" disabled selected>Select...</option>' + peopleOptions;
-categorySelect.innerHTML = '<option value="" disabled selected>Select...</option>' + categoryOptions;
+        categorySelect.innerHTML = '<option value="" disabled selected>Select...</option>' + categoryOptions;
         if(currentAssignee) taskAssigneeSelect.value = currentAssignee;
         if(currentCategory) categorySelect.value = currentCategory;
-queryAll('.new-subtask-assignee').forEach(select => { const currentSubAssignee = select.value; select.innerHTML = '<option value="" disabled selected>Select...</option>' + peopleOptions; if(currentSubAssignee) select.value = currentSubAssignee; });
-};
+        const newSubtaskAssignee = get('newSubtaskAssignee');
+        if (newSubtaskAssignee) {
+             const currentSubAssignee = newSubtaskAssignee.value;
+             newSubtaskAssignee.innerHTML = '<option value="" disabled selected>Select...</option>' + peopleOptions;
+             if(currentSubAssignee) newSubtaskAssignee.value = currentSubAssignee;
+        }
+    };
 
     const openModal = (modal) => modal.classList.add('is-active');
     const closeModal = (modal) => modal.classList.remove('is-active');
-const generateReportHTML = (title, tasksToReport) => { let tableHTML = `<table class="report-table"><thead><tr><th>Category</th><th>Status</th><th>Task</th><th>Description</th><th>Assignee</th><th>Due Date</th><th>Sub-tasks</th></tr></thead><tbody>`;
-tasksToReport.forEach(task => { let subtaskHTML = ''; if (task.subtasks?.length > 0) { subtaskHTML += '<ul>'; (function r(s) { s.forEach(st => { subtaskHTML += `<li>${st.name} (Assignee: ${st.assignee})</li>`; if (st.subtasks?.length > 0) { subtaskHTML += '<ul>'; r(st.subtasks); subtaskHTML += '</ul>'; } }); })(task.subtasks); subtaskHTML += '</ul>'; } tableHTML += `<tr><td>${task.category}</td><td>${task.status}</td><td>${task.name}</td><td>${task.description || ''}</td><td>${task.assignee}</td><td>${formatDateForDisplay(task.dueDate)}</td><td>${subtaskHTML || 'None'}</td></tr>`; });
+    const generateReportHTML = (title, tasksToReport) => { let tableHTML = `<table class="report-table"><thead><tr><th>Category</th><th>Status</th><th>Task</th><th>Description</th><th>Assignee</th><th>Due Date</th><th>Sub-tasks</th></tr></thead><tbody>`;
+tasksToReport.forEach(task => { let subtaskHTML = ''; if (task.subtasks?.length > 0) { subtaskHTML += '<ul>'; task.subtasks.forEach(st => { subtaskHTML += `<li>${st.name} (Assignee: ${st.assignee})</li>`; }); subtaskHTML += '</ul>'; } tableHTML += `<tr><td>${task.category}</td><td>${task.status}</td><td>${task.name}</td><td>${task.description || ''}</td><td>${task.assignee}</td><td>${formatDateForDisplay(task.dueDate)}</td><td>${subtaskHTML || 'None'}</td></tr>`; });
 tableHTML += `</tbody></table>`; return `<div class="print-report"><h1>${title}</h1><p>Generated on: ${new Date().toLocaleDateString('en-GB')}</p>${tableHTML}</div>`; };
     const triggerPrint = (reportHTML) => { get('print-container').innerHTML = reportHTML; window.print();
 };
@@ -486,42 +513,38 @@ const reportTasks = tasks.filter(task => !task.isArchived && selectedUsers.some(
         triggerPrint(generateReportHTML('Task Report by Assignee', reportTasks)); 
         closeModal(get('reportConfigModal'));
     };
-const generateOverdueReport = () => {
-    const overdueTasks = tasks.filter(task => !task.isArchived && new Date(task.dueDate) < new Date() && !['Closed'].includes(task.status));
-    if (overdueTasks.length === 0) {
-        alert('No overdue tasks found.');
-        return;
-    }
-    triggerPrint(generateReportHTML('Overdue Tasks Report', overdueTasks));
-};
 
-const generateCategoryReport = () => {
-    const reportTasks = tasks
-        .filter(task => !task.isArchived && task.status !== 'Closed')
-        .sort((a, b) => ((a.category || 'Uncategorised').localeCompare(b.category || 'Uncategorised')));
-    if (reportTasks.length === 0) {
-        alert('No open or in-progress tasks found.');
-        return;
-    }
-    triggerPrint(generateReportHTML('Tasks by Category', reportTasks));
-};
+    const generateOverdueReport = () => {
+        const overdueTasks = tasks.filter(task => !task.isArchived && new Date(task.dueDate) < new Date() && !['Closed'].includes(task.status));
+        if (overdueTasks.length === 0) { alert('No overdue tasks found.'); return; }
+        triggerPrint(generateReportHTML('Overdue Tasks Report', overdueTasks));
+    };
+
+    const generateCategoryReport = () => {
+        const reportTasks = tasks
+            .filter(task => !task.isArchived && task.status !== 'Closed')
+            .sort((a, b) => ((a.category || 'Uncategorised').localeCompare(b.category || 'Uncategorised')));
+        if (reportTasks.length === 0) { alert('No open or in-progress tasks found.'); return; }
+        triggerPrint(generateReportHTML('Tasks by Category', reportTasks));
+    };
+
 // --- SETTINGS MODAL ---
     const isPersonInUse = (personName) => {
         const checkTasks = (taskList) => {
             for (const task of taskList) {
                 if (task.assignee === personName) return true;
-if (task.subtasks && task.subtasks.length > 0) {
+                if (task.subtasks && task.subtasks.length > 0) {
                     if (checkTasks(task.subtasks)) return true;
-}
+                }
             }
             return false;
-};
+        };
         return checkTasks(tasks);
     };
 
     const isCategoryInUse = (categoryName) => {
         return tasks.some(task => task.category === categoryName && !task.isArchived);
-};
+    };
 
     const openSettingsModal = () => {
         peopleList.innerHTML = '';
