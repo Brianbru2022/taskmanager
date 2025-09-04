@@ -486,16 +486,25 @@ const reportTasks = tasks.filter(task => !task.isArchived && selectedUsers.some(
         triggerPrint(generateReportHTML('Task Report by Assignee', reportTasks)); 
         closeModal(get('reportConfigModal'));
     };
-const generateOverdueReport = () => { const overdueTasks = tasks.filter(task => !task.isArchived && new Date(task.dueDate) < new Date() && !['Closed'].includes(task.status));
-const generateCategoryReport = () => { 
-        const reportTasks = tasks
-            .filter(task => !task.isArchived && task.status !== 'Closed')
-            .sort((a, b) => ((a.category || 'Uncategorised').localeCompare(b.category || 'Uncategorised')));
-        if (reportTasks.length === 0) { alert('No open or in-progress tasks found.'); return; }
-        triggerPrint(generateReportHTML('Tasks by Category', reportTasks));
-    };
+const generateOverdueReport = () => {
+    const overdueTasks = tasks.filter(task => !task.isArchived && new Date(task.dueDate) < new Date() && !['Closed'].includes(task.status));
+    if (overdueTasks.length === 0) {
+        alert('No overdue tasks found.');
+        return;
+    }
+    triggerPrint(generateReportHTML('Overdue Tasks Report', overdueTasks));
+};
 
-if (overdueTasks.length === 0) { alert('No overdue tasks found.'); return; } triggerPrint(generateReportHTML('Overdue Tasks Report', overdueTasks)); };
+const generateCategoryReport = () => {
+    const reportTasks = tasks
+        .filter(task => !task.isArchived && task.status !== 'Closed')
+        .sort((a, b) => ((a.category || 'Uncategorised').localeCompare(b.category || 'Uncategorised')));
+    if (reportTasks.length === 0) {
+        alert('No open or in-progress tasks found.');
+        return;
+    }
+    triggerPrint(generateReportHTML('Tasks by Category', reportTasks));
+};
 // --- SETTINGS MODAL ---
     const isPersonInUse = (personName) => {
         const checkTasks = (taskList) => {
